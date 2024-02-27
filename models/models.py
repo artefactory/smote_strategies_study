@@ -163,7 +163,7 @@ class MGS(object):
         new_samples = np.zeros((n_synthetic_sample, dimension))
         for i in range(n_synthetic_sample):
             indice = np.random.randint(n_minoritaire) #individu centrale qui sera choisi        
-            indices_neigh = random.sample(range(self.K+1),self.n_points) # ce seront les indices des neighbors dnas neighbor_by_index[indice]
+            indices_neigh = random.sample(range(self.K+1),self.n_points+1) # ce seront les indices des neighbors dnas neighbor_by_index[indice]
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
             mu = (1/self.n_points) * X_positifs[indice_neighbors,:].sum(axis=0)
             sigma = self.llambda*(1/self.n_points)* (X_positifs[indice_neighbors,:]-mu).T.dot((X_positifs[indice_neighbors,:]-mu))
