@@ -1,23 +1,25 @@
+import os
+
 import pandas as pd
 import numpy as np
 
 
 
 def load_pima_data():
-    df_diabete = pd.read_csv('/home/abdoulaye_sakho/Code/data/diabetes.csv')
+    df_diabete = pd.read_csv(os.path.join(os.getcwd(), 'externals', 'diabetes.csv'))
     X_pima = df_diabete.drop(['Outcome'],axis=1).to_numpy()
     y_pima = df_diabete[['Outcome']].values.ravel()
     return X_pima, y_pima
 
 
 def load_phoneme_data():
-    df_phoneme = pd.read_csv('/home/abdoulaye_sakho/Code/data/phoneme.csv')
+    df_phoneme = pd.read_csv(os.path.join(os.getcwd(), 'externals', 'phoneme.csv'))
     X_phoneme = df_phoneme.drop([' Class'],axis=1).to_numpy()
     y_phoneme = df_phoneme[[' Class']].values.ravel()
     return X_phoneme, y_phoneme
 
 def load_df_phoneme_positifs():
-    df_phoneme = pd.read_csv('/home/abdoulaye_sakho/Code/data/phoneme.csv')
+    df_phoneme = pd.read_csv(os.path.join(os.getcwd(), 'externals', 'phoneme.csv'))
     df_phoneme_positifs = df_phoneme[df_phoneme[' Class']==1].copy().reset_index(drop=True)
     df_phoneme_positifs.drop([' Class'],axis=1,inplace=True)
     return df_phoneme_positifs
