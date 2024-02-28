@@ -1,6 +1,6 @@
 ## SMOTE strategies study
 
-Repository of the paper *[Theoretical and experimental study of SMOTE]([https://www.markdownguide.org](https://arxiv.org/pdf/2402.03819.pdf)https://arxiv.org/pdf/2402.03819.pdf)*. In the following, this paper is referred to our article.
+Repository of the paper [Theoretical and experimental study of SMOTE]([https://www.markdownguide.org](https://arxiv.org/pdf/2402.03819.pdf)https://arxiv.org/pdf/2402.03819.pdf). In the following, this paper is referred to our article.
 
 More information soon.
 
@@ -16,19 +16,19 @@ More information soon.
 
 In this repository, $3$ notebooks are available: 
 
-* The notebooks $\textit{notebooks/classif\_experiments.ipynb}$ and $$\textit{notebooks/distances\_experiments.ipynb}$ puprose is to allow the reprodcutibility of the experience of our article.
+* The notebooks *notebooks/classif_experiments.ipynb* and *notebooks/distances_experiments.ipynb* puprose is to allow the reprodcutibility of the experience of our article.
 
-* The notebook $\textit{notebooks/resampling\_example.ipynb}$ illustrates how to use the new strategies introduced in our article.
+* The notebook *notebooks/resampling_example.ipynb* illustrates how to use the new strategies introduced in our article.
 
-The folder $\textit{oversampling\_strategies}$ contains implementation of the introduced oersampling strategies and seminal ones.
+The folder *oversampling_strategies* contains implementation of the introduced oersampling strategies and seminal ones.
 
-The folder $\textit{validation}$ contains implementation the protocols used for the numerical experiments of our article.
+The folder *validation* contains implementation the protocols used for the numerical experiments of our article.
 
 
 
 ## Data sets
 
-The data sets of used for our article should be dowlonoaded  inside the $\textit{data/externals}$ folder. The data sets are aivailable at the followings adresses :
+The data sets of used for our article should be dowlonoaded  inside the *data/externals* folder. The data sets are aivailable at the followings adresses :
 
 * Phoneme : https://openml.org/d/1489 
 * Abalone : https://archive.ics.uci.edu/dataset/1/abalone
