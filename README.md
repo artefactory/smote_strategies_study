@@ -43,4 +43,4 @@ The data sets of used for our article should be dowlonoaded  inside the *data/ex
 
 ## Acknowledgements
 
-This work was funded by Artefact Reseacrh Center in collaboration with the Laboratoire de Probabilités Statistiques et Modélisation (LPSM) of Sorbonne University.
+This work was done through a partenership between **Artefact Research Center** and the **Laboratoire de Probabilités Statistiques et Modélisation** (LPSM) of Sorbonne University.
