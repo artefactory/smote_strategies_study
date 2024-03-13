@@ -72,6 +72,7 @@ class CVSmoteModel(object):
         self.list_k_max = list_k_max
         self.list_k_step = list_k_step
         self.model = model
+        self.estimators_= [0]
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -98,6 +99,8 @@ class CVSmoteModel(object):
 
         new_X, new_y = SMOTE(k_neighbors=best_k).fit_resample(X, y)
         self.model.fit(new_X, new_y, sample_weight)
+        if hasattr(self.model, 'estimators_'):
+            self.estimators_=self.model.estimators_
         
     
     def predict(self, X):

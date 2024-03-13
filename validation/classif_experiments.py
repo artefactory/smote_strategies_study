@@ -18,6 +18,43 @@ def pred_perso(y_pred_probas,treshold=0.5):
     tmp_df['res_final'] = tmp_df['y_pred_probas'].apply(lambda x: 1 if x >= treshold else 0)
     return tmp_df['res_final'].tolist()
 
+def subsample_to_ratio_indices(X,y,ratio,seed_sub,output_dir_subsampling,name_subsampling_file,
+                              has_previous_under_sampling=False,previous_under_sampling=None):
+    Path(output_dir_subsampling).mkdir(parents=True, exist_ok=True) ## build the directory if it does not exists
+    if has_previous_under_sampling:
+        
+        X_under,y_under = X[previous_under_sampling,:], y[previous_under_sampling]
+        X_positifs = X_under[np.array(y_under, dtype=bool)]
+        X_negatifs = X_under[np.array(1-y_under, dtype=bool)]
+    else :
+        X_positifs = X[np.array(y, dtype=bool)]
+        X_negatifs = X[np.array(1-y, dtype=bool)]
+              
+    np.random.seed(seed=seed_sub)
+    n_undersampling_sub = int( (ratio*len(X_negatifs))/(1-ratio) ) ## compute number of sample to keeep
+    ##int() inr order to have upper integer part
+    df_X = pd.DataFrame(data = X)
+    if has_previous_under_sampling :
+        indices_positifs_kept = np.random.choice(df_X.loc[previous_under_sampling].loc[np.array(y_under, dtype=bool)].index.values,
+                               size=n_undersampling_sub,replace=False)
+        indices_negatifs_kept = df_X.loc[previous_under_sampling].loc[np.array(1-y_under, dtype=bool),:].index.values
+        indices_kept = np.hstack((indices_positifs_kept,indices_negatifs_kept))
+    else:
+        indices_positifs_kept = np.random.choice(df_X.loc[np.array(y, dtype=bool)].index.values,
+                               size=n_undersampling_sub,replace=False)
+        indices_negatifs_kept = df_X.loc[np.array(1-y, dtype=bool)].index.values
+        indices_kept = np.hstack((indices_positifs_kept,indices_negatifs_kept))
+    
+    np.save(os.path.join(output_dir_subsampling,name_subsampling_file+".npy"), indices_kept)
+    return indices_kept
+
+def read_subsampling_indices(X,y,dir_subsampling,name_subsampling_file,get_indexes=False):
+    indexes_subsampling = np.load(os.path.join(dir_subsampling,name_subsampling_file+".npy"))
+    if get_indexes:
+        return indexes_subsampling, X[indexes_subsampling,:], y[indexes_subsampling]
+    else:
+        return X[indexes_subsampling,:], y[indexes_subsampling]
+
 ####### run_eval ##########
 def subsample_to_ratio(X,y,ratio,seed_sub):
     X_positifs = X[np.array(y, dtype=bool)]
@@ -55,6 +92,7 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
 
     list_all_preds = [[] for i in range(n_strategy+2)]
     list_tree_depth = []
+    list_tree_depth_name = []
     
     X_copy, y_copy = X.copy(), y.copy()
     ############## Chack if undersampling is necessary ##################
@@ -63,9 +101,9 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
     if subsample:
         X_copy,y_copy = subsample_to_ratio(X_copy,y_copy,ratio=0.2,seed_sub=seed_sub)
         if subsubsample :
-            X_copy,y_copy = subsample_to_ratio(X_copy,y_copy,ratio=0.1,seed_sub=seed_sub)
+            X_copy,y_copy = subsample_to_ratio(X_copy,y_copy,ratio=0.1,seed_sub=seed_subsub)
             if subsubsubsample :
-                X_copy,y_copy = subsample_to_ratio(X_copy,y_copy,ratio=0.01,seed_sub=seed_sub)
+                X_copy,y_copy = subsample_to_ratio(X_copy,y_copy,ratio=0.01,seed_sub=seed_subsubsub)
     np.random.seed(seed=None)
     
     folds = list(splitter.split(X_copy,y_copy))
@@ -73,7 +111,6 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
     ######## Start protocol by strategy    #######
     ##############################################
     for i,(oversampling_name, oversampling_func, oversampling_params, model) in enumerate(list_oversampling_and_params):
-        forest = hasattr(model, 'estimators_') and hasattr(model.estimators_[0], 'get_depth')
         
         for fold, (train, test) in enumerate(folds):
             ################## Folds data are prepared #############
@@ -88,9 +125,11 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
             ######### Run of the given fold ###############
             X_res, y_res = shuffle(X_res,y_res) # to put in oversampling_func
             model.fit(X_res,y_res)
+            forest = hasattr(model, 'estimators_') and hasattr(model.estimators_[0], 'get_depth')
             if forest:
                 curent_tree_depth = [estimator.get_depth() for estimator in model.estimators_]
                 list_tree_depth.append(curent_tree_depth)
+                list_tree_depth_name.append(oversampling_name)
                 
             if to_standard_scale:
                 X_test = scaler.transform(X_test)
@@ -102,11 +141,11 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
                 list_all_preds[-1].extend(np.full((len(test),),fold))# save information of the ciurrent testing fold
                 list_all_preds[0].extend(y_copy[test])#save the information of the target value
 
-    
+    pd.DataFrame(np.array(list_tree_depth).T,columns=list_tree_depth_name
+            ).to_csv(os.path.join(output_dir,"depth"+name_file[:-4]+".csv"))
     runs_path_file_strats = os.path.join(output_dir,"preds_"+ name_file)
     np.save(runs_path_file_strats,np.array(list_all_preds).T)
     np.save(os.path.join(output_dir,"name_strats"+name_file),list_names_oversamplings)
-    np.save(os.path.join(output_dir,"depth"+name_file),np.array(list_tree_depth))
 
 
 def compute_metrics(output_dir,name_file,list_metric):
@@ -210,17 +249,25 @@ def plot_roc_curves(output_dir,name_file):
     plt.show()
     
     
-def max_depth_function(output_dir,name_file):
-    list_names_oversamplings = np.load(os.path.join(output_dir,"name_strats"+name_file))[1:-1] # On enlève les colonnes  'y_true' et 'fold'
-    array_tree_depth = np.load(os.path.join(output_dir,
-                                        "depth"+name_file))
-    array_tree_depth_mean=array_tree_depth.mean(axis=1)
-    list_res_par_strat = []
-    int_pas = len(list_names_oversamplings)
 
-    for fold in range(5):
-        list_res_par_strat.append(array_tree_depth_mean[0+int_pas*fold:int_pas+int_pas*fold])
-
-    df_max_depth_by_fold = pd.DataFrame(np.array(list_res_par_strat),columns=list_names_oversamplings)
-    return df_max_depth_by_fold
+##### Spliter ##########
+    
+from sklearn.model_selection import TimeSeriesSplit
+class MyTimeSeriesSplit(TimeSeriesSplit):
+    """
+    MyTimeSeriesSplit
+    """
+    
+    def __init__(self,n_splits=10, starting_split=5,max_train_size=None, test_size=None, gap=0):
+        """
+        """
+        super().__init__(n_splits=n_splits,max_train_size=max_train_size, test_size=test_size, gap=gap)
+        self.starting_split = starting_split
+        
+    def split(self,X, y=None, groups=None):
+        """
+        """
+        folds = list(super().split(X))
+        folds_from_starting_split = folds[self.starting_split:]
+        return folds_from_starting_split
 
