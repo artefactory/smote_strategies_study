@@ -60,7 +60,7 @@ def preprocess_ga4_7features(df):
     return X, y,meta_df
 
 def load_ga4_continuous():
-    df = pd.read_csv('/home/abdoulaye_sakho/Code/data/data_ga4.csv',index_col=0)
+    df = pd.read_csv(os.path.join(os.getcwd(), 'externals', 'data_ga4.csv'))
     X, y,meta_df = preprocess_ga4_7features(df=df)
     return X.to_numpy(),y.to_numpy().ravel(),meta_df
 
