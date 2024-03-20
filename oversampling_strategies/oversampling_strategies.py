@@ -169,6 +169,9 @@ class MGS(object):
         return oversampled_X, oversampled_y
     
 class NoSampling(object):
+    """
+    None rebalancing strategy class
+    """
         
     def fit_resample(self, X, y):
         """

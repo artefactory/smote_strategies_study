@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import RocCurveDisplay, roc_curve
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.utils import shuffle
 from sklearn.metrics import auc
 from sklearn.preprocessing import StandardScaler
@@ -61,8 +61,8 @@ def subsample_to_ratio(X,y,ratio,seed_sub):
     X_negatifs = X[np.array(1-y, dtype=bool)]
     
     np.random.seed(seed=seed_sub)
-    n_undersampling_sub = int( (ratio*len(X_negatifs))/(1-ratio) ) ## compute number of sample to keeep
-    ##int() inr order to have upper integer part
+    n_undersampling_sub = int( (ratio*len(X_negatifs))/(1-ratio) ) ## compute the number of sample to keep
+    ##int() in order to have upper integer part
     idx = np.random.randint(len(X_positifs), size=n_undersampling_sub)
             
     X_positifs_selected = X_positifs[idx,:]
@@ -95,7 +95,7 @@ def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
     list_tree_depth_name = []
     
     X_copy, y_copy = X.copy(), y.copy()
-    ############## Chack if undersampling is necessary ##################
+    ############## Check if undersampling is necessary ##################
     X_positifs = X_copy[np.array(y_copy, dtype=bool)]
     X_negatifs = X_copy[np.array(1-y_copy, dtype=bool)]
     if subsample:
@@ -189,7 +189,7 @@ def compute_metrics_several_protocols(output_dir,init_name_file,list_metric,bool
     list_res = []
 
     
-######### CAS ROC AUC
+######### CASE  ROC AUC only is computed ######
     if bool_roc_auc_only==True:
         for i in range(n_iter):
             name_file = init_name_file + str(i) +'.npy'
@@ -228,34 +228,12 @@ def compute_metrics_several_protocols(output_dir,init_name_file,list_metric,bool
         
     return df_final_mean,df_final_std
 
-
-def plot_roc_curves(output_dir,name_file):
-
-    list_names_oversamplings = np.load(os.path.join(output_dir,"name_strats"+name_file))
-    array_all_preds_strats_final = np.load(os.path.join(output_dir,"preds_"+ name_file))
-    df_all = pd.DataFrame(array_all_preds_strats_final,columns=list_names_oversamplings)
-    
-    #plt.figure(figsize=(10,6))
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    
-    for col in df_all.drop(['y_true','fold'],axis=1).columns:
-        fpr, tpr, _ = roc_curve(df_all[['y_true']].values, df_all[[col]].values)
-        roc_auc = auc(fpr, tpr)
-        roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr,roc_auc=roc_auc).plot(label=col,ax=ax)
-        
-    ax.set_title("Receiver Operating Characteristic (ROC) curves")
-    ax.grid(linestyle="--")
-    plt.legend()
-    plt.show()
-    
     
 
-##### Spliter ##########
-    
-from sklearn.model_selection import TimeSeriesSplit
 class MyTimeSeriesSplit(TimeSeriesSplit):
     """
     MyTimeSeriesSplit
+    The starting split can be chosen with this child class from TimeSeriesSplit.
     """
     
     def __init__(self,n_splits=10, starting_split=5,max_train_size=None, test_size=None, gap=0):
@@ -271,3 +249,55 @@ class MyTimeSeriesSplit(TimeSeriesSplit):
         folds_from_starting_split = folds[self.starting_split:]
         return folds_from_starting_split
 
+class MyTimeSeriesSplit_groupout(TimeSeriesSplit):
+    """
+    MyTimeSeriesSplit with group out on col_name_id. 
+    All the samples with ID that have been seen during the training phase, are removed of the test set.
+    """
+    
+    def __init__(self,meta_df,col_name_id,n_splits=10, starting_split=5,max_train_size=None, test_size=None, gap=0):
+        """
+        col_name_id : name of the column containing the ID
+        """
+        super().__init__(n_splits=n_splits,max_train_size=max_train_size, test_size=test_size, gap=gap)
+        self.starting_split = starting_split
+        self.meta_df = meta_df
+        self.col_name_id = col_name_id
+        
+    def split(self,X, y=None, groups=None):
+        """
+        """
+        folds = list(super().split(X))
+        folds_from_starting_split = folds[self.starting_split:]
+        final_folds_from_starting_split =[]
+        for fold, (train_index, test_index) in enumerate(folds_from_starting_split):
+            
+            # Split:
+            meta_df_train, meta_df_test = self.meta_df.iloc[train_index], self.meta_df.iloc[test_index]
+            # Samples with ID that have been seen during training are removed from the test set:
+            id_in_train = meta_df_train[self.col_name_id].unique().tolist()
+            test_indices_to_keep = meta_df_test.index[~meta_df_test[self.col_name_id].isin(id_in_train)].tolist()
+            tmp = (train_index,test_indices_to_keep)
+            final_folds_from_starting_split.append(tmp)
+            
+        return final_folds_from_starting_split
+    
+
+
+def plot_roc_curves(output_dir,name_file):
+
+    list_names_oversamplings = np.load(os.path.join(output_dir,"name_strats"+name_file))
+    array_all_preds_strats_final = np.load(os.path.join(output_dir,"preds_"+ name_file))
+    df_all = pd.DataFrame(array_all_preds_strats_final,columns=list_names_oversamplings)
+    
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    
+    for col in df_all.drop(['y_true','fold'],axis=1).columns:
+        fpr, tpr, _ = roc_curve(df_all[['y_true']].values, df_all[[col]].values)
+        roc_auc = auc(fpr, tpr)
+        roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr,roc_auc=roc_auc).plot(label=col,ax=ax)
+        
+    ax.set_title("Receiver Operating Characteristic (ROC) curves")
+    ax.grid(linestyle="--")
+    plt.legend()
+    plt.show()
