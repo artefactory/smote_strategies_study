@@ -30,11 +30,11 @@ The folder *validation* contains implementation the protocols used for the numer
 
 The data sets of used for our article should be dowlonoaded  inside the *data/externals* folder. The data sets are aivailable at the followings adresses :
 
-* Phoneme : https://openml.org/d/1489 
+* Pima : https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database
+* Phoneme : https://github.com/jbrownlee/Datasets/blob/master/phoneme.csv 
 * Abalone : https://archive.ics.uci.edu/dataset/1/abalone
 * Wine : https://archive.ics.uci.edu/dataset/186/wine+quality
 * Haberman : https://archive.ics.uci.edu/dataset/43/haberman+s+survival
-* Pima : https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database
 * Yeast : https://archive.ics.uci.edu/dataset/110/yeast
 * Vehicle : https://archive.ics.uci.edu/dataset/149/statlog+vehicle+silhouettes
 * Ionosphere : https://archive.ics.uci.edu/dataset/52/ionosphere

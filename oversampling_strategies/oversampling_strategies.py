@@ -3,6 +3,12 @@ import random
 import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import ADASYN
+from imblearn.over_sampling import BorderlineSMOTE
+from imblearn.under_sampling import NearMiss
+
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
@@ -179,3 +185,73 @@ class NoSampling(object):
         y is a numpy array of dimension (n,)
         """
         return X,y
+    
+class RUS_imb(object):
+    """
+    RUS strategy from imb-learn
+    """
+    def fit_resample(self, X, y):
+        """
+        X is a numpy array
+        y is a numpy array of dimension (n,)
+        """
+        rus = RandomUnderSampler(sampling_strategy='majority',random_state=None,replacement=False)
+        X_res, y_res = rus.fit_resample(X, y)
+        return X_res, y_res
+    
+class ROS_imb(object):
+    """
+    RUS strategy from imb-learn
+    """
+    def fit_resample(self, X, y):
+        """
+        X is a numpy array
+        y is a numpy array of dimension (n,)
+        """
+        ros = RandomOverSampler(sampling_strategy='minority',random_state=None)
+        X_res, y_res = ros.fit_resample(X, y)
+        return X_res, y_res
+
+class ADASYN_imb(object):
+    """
+    RUS strategy from imb-learn
+    """
+    def fit_resample(self, X, y,K):
+        """
+        X is a numpy array
+        y is a numpy array of dimension (n,)
+        """
+        ada = ADASYN(sampling_strategy='minority',random_state=None,n_neighbors=K)
+        X_res, y_res = ada.fit_resample(X, y)
+        return X_res, y_res
+
+class NM1_imb(object):
+    """
+    RUS strategy from imb-learn
+    """
+    def fit_resample(self, X, y):
+        """
+        X is a numpy array
+        y is a numpy array of dimension (n,)
+        """
+        nm = NearMiss(sampling_strategy='majority', version=1)
+        X_res, y_res = nm.fit_resample(X, y)
+        return X_res, y_res
+
+class BS_imb(object):
+    """
+    RUS strategy from imb-learn
+    """
+    def fit_resample(self, X, y,K,kind="borderline-1"):
+        """
+        X is a numpy array
+        y is a numpy array of dimension (n,)
+        """
+        ada = BorderlineSMOTE(sampling_strategy='minority',k_neighbors=K,random_state=None,kind=kind)
+        X_res, y_res = ada.fit_resample(X, y)
+        return X_res, y_res
+
+    
+
+
+    

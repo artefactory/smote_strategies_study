@@ -75,7 +75,7 @@ def subsample_to_ratio(X,y,ratio,seed_sub):
 
 def run_eval(output_dir, name_file, X, y, list_oversampling_and_params,splitter,
              subsample=False,subsubsample=False,subsubsubsample=False,seed_sub=11,seed_subsub=9,
-             seed_subsubsub=5,to_standard_scale=False):
+             seed_subsubsub=5,to_standard_scale=True):
     """
     Main function of the procol.
     output_dir is the path where the output files will be stored.
