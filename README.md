@@ -1,36 +1,30 @@
 ## SMOTE strategies study
 
-Repository of the paper [Theoretical and experimental study of SMOTE]([https://www.markdownguide.org](https://arxiv.org/pdf/2402.03819.pdf)https://arxiv.org/pdf/2402.03819.pdf). In the following, this paper is referred to our article.
+Repository for [Theoretical and experimental study of SMOTE](https://arxiv.org/pdf/2402.03819.pdf).
 
-More information soon.
+In praticular, you will find code to reproduce the paper experiments as well as an nice implementation of our *new* and *efficient* strategy for your projects.
 
 
 ## Table of Contents
-- [Repository](#repository)
-  - [Table of Contents](#table-of-contents)
   - [Getting Started](#getting-started)
-  - [Data sets](#getting-started)
-  - [Acknowledgements](#getting-started)
+  - [Data sets](#data-sets)
+  - [Acknowledgements](#acknowledgements)
 
 ## Getting Started
 
-In this repository, $3$ notebooks are available: 
+In order to use our xxx strategy:
+  - this [notebook](notebooks/resampling_example.ipynb) illustrates how to use it
+  - the strategy is implemented [here](./oversampling_strategies/)
 
-* The notebooks *notebooks/classif_experiments.ipynb* and *notebooks/distances_experiments.ipynb* puprose is to allow the reprodcutibility of the experience of our article.
-
-* The notebook *notebooks/resampling_example.ipynb* illustrates how to use the new strategies introduced in our article.
-
-The folder *oversampling_strategies* contains implementation of the introduced oersampling strategies and seminal ones.
-
-The folder *validation* contains implementation the protocols used for the numerical experiments of our article.
-
-
+If you want to reproduce our paper experiments:
+  - the notebooks [here](notebooks/classif_experiments.ipynb) and [here](notebooks/distances_experiments.ipynb) reproduce the experiments
+  - thise [code](./validation) contains implementation the protocols used for the numerical experiments of our article. 
 
 ## Data sets
 
-The data sets of used for our article should be dowlonoaded  inside the *data/externals* folder. The data sets are aivailable at the followings adresses :
+The data sets of used for our article should be dowloaded  inside the *data/externals* folder. The data sets are available at the followings adresses :
 
-* Pima : https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database
+* [Pima](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database)
 * Phoneme : https://github.com/jbrownlee/Datasets/blob/master/phoneme.csv 
 * Abalone : https://archive.ics.uci.edu/dataset/1/abalone
 * Wine : https://archive.ics.uci.edu/dataset/186/wine+quality
@@ -43,6 +37,16 @@ The data sets of used for our article should be dowlonoaded  inside the *data/ex
 * MagicTel : https://www.openml.org/d/44125
 * California : https://www.openml.org/d/44090
 * House_16H : https://www.openml.org/d/44123
+
+
+Why not add paper results here ?
+Something like:
+
+| Dataset    | Method 1 | Method 2 |
+| -------- | ------- |
+| [Pima](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database)  | xxx   | xxx   |
+|  [Phoneme](https://github.com/jbrownlee/Datasets/blob/master/phoneme.csv)  | xxx   | xxx   |
+| [Abalone](https://archive.ics.uci.edu/dataset/1/abalone )   | xxx   | xxx   |
 
 ## Acknowledgements
 

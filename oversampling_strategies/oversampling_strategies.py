@@ -9,61 +9,103 @@ from imblearn.over_sampling import ADASYN
 from imblearn.over_sampling import BorderlineSMOTE
 from imblearn.under_sampling import NearMiss
 
+from imblearn.base import BaseSampler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
-class MySmote(object):
+class MySmote(BaseSampler):
     """
-    MySMOTE. 
+    > Better naming of the class: what's the name in the paper ?
+    > Should it inherit from imblearn's BaseSampler ?
+    > DOCstring: either Google or NumPy, took NumPy for example.
+
+    > Here should describe class specificities briefly
     """
     
-    def __init__(self, K, w_simulation, w_simulation_params):
+    def __init__(self, n_neighbors, w_simulation, w_simulation_params):
+        """Instantiation of MySmote.
+
+
+        Parameters
+        ----------
+        n_neighbors : type
+            what it does
+
+        w_simulation : type
+            what is does
+
+        w_simulation_params : type
+            what is does
         """
-        w_simulation is a function.
-        w_simulation_params should be a dict corresponding to w_simulation inputs.
-        """
-        self.K = K
+        self.n_neighbors = n_neighbors
         self.w_simulation = w_simulation
         self.w_simulation_params = w_simulation_params
         
-    def fit_resample(self, X, y=None, n_final_sample=None):
-        """
+    def fit_resample(self, X, y=None, n_final_samples=None):
+        """Resamples the dataset.
+
+
         if y=None, all points are considered positive, and oversampling on all X
         if n_final_sample=None, objective is balanced data.
+
+
+        Parameters
+        ----------
+        X : type
+            what it does
+
+        y : type
+            what is does, default is None.
+
+        n_final_samples : type
+            what is does, default is None.
+            
+        Returns
+        -------
+        oversampled_X : type
+            what it is
+        oversampled_y : type
+            what it is
         """
+        if n_final_samples is None and y is None:
+            raise ValueErros("You need to provide a value for n_final_samples or y, got None and None.")
 
         if y is None:
-            X_positifs = X
-            X_negatifs = np.ones((0, X.shape[1]))
-            assert n_final_sample is not None, "You need to provide a number of final samples."
+            majority_X = X # English
+            minority_X = np.ones((0, X.shape[1]))
         else:
-            X_positifs = X[y == 1]
-            X_negatifs = X[y == 0]
-            if n_final_sample is None:
-                n_final_sample = (y == 0).sum()
+            majority_X = X[y == 1]
+            minority_X = X[y == 0]
+            if n_final_samples is None:
+                n_final_samples = (y == 0).sum()
     
-        n_minoritaire = X_positifs.shape[0]
-        neigh = NearestNeighbors(n_neighbors=self.K, algorithm='ball_tree')
-        neigh.fit(X_positifs)
-        neighbor_by_index = neigh.kneighbors(X=X_positifs, n_neighbors=self.K+1, return_distance=False) 
+        majority_n = majority_X.shape[0] # If 1 MUST be majority, need to be precised
+        # Same in ImbLearn ?
+        # Why not take two cases in consideration: np.max([np.sum(y == 1), np.sum(y == 0)]) ?
+
+        nearest_neighbor = NearestNeighbors(n_neighbors=self.n_neighbors, algorithm='ball_tree')
+        nearest_neighbor.fit(majority_X)
+        neighbor_by_index = nearest_neighbor.kneighbors(X=majority_X, n_neighbors=self.n_neighbors+1, return_distance=False) 
         #the first element is always the given point (my nearest neighbor is myself).
 
-        n_synthetic_sample = n_final_sample - n_minoritaire
-        new_samples = np.zeros((n_synthetic_sample, X.shape[1]))
-        for i in range(n_synthetic_sample):
-            indice = np.random.randint(n_minoritaire) #central point that is chosen
-            k1 = np.random.randint(1,self.K+1)# nearest neighbors which is choisen. The central point itself is excluded (0 excluded)
-            indice_neighbor = neighbor_by_index[indice][k1]
-            w = self.w_simulation(**self.w_simulation_params) #factor of the difference betweeen the central point and the selected neighbor
-            new_samples[i,:] = X_positifs[indice] + w * (X_positifs[indice_neighbor] - X_positifs[indice]) 
+        n_synthetic_samples = n_final_samples - minority_n
+        new_samples = np.zeros((n_synthetic_samples, X.shape[1]))
+        for i in range(n_synthetic_samples):
+            central_index = np.random.randint(minority_n) #central point that is chosen
+            
+            chosen_neighbor = np.random.randint(1,self.n_neighbors+1)# nearest neighbors which is choisen. The central point itself is excluded (0 excluded)
+            neighbor_index = neighbor_by_index[central_index][chosen_neighbor]
+            
+            weight = self.w_simulation(**self.w_simulation_params) #factor of the difference betweeen the central point and the selected neighbor
+            new_samples[i,:] = majority_X[central_index] + weight * (majority_X[neighbor_index] - majority_X[central_index]) 
 
-        oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
-        oversampled_y = np.hstack((np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1)))
+        oversampled_X = np.concatenate((minority_X, majority_X, new_samples), axis=0)
+        oversampled_y = np.hstack((np.full(len(minority_X), 0), np.full((n_final_samples,), 1)))
 
         return oversampled_X, oversampled_y
 
     
-class CVSmoteModel(object):
+class CVSmoteModel(BaseSampler):
     """
     CVSmoteModel. It's an estimator and not a oversampling strategy only like the others class in this file.
     """
@@ -121,7 +163,7 @@ class CVSmoteModel(object):
         """
         return self.model.predict_proba(X)        
 
-class MGS(object):
+class MGS(BaseSampler):
     """
     MGS
     """
@@ -174,7 +216,7 @@ class MGS(object):
 
         return oversampled_X, oversampled_y
     
-class NoSampling(object):
+class NoSampling(BaseSampler):
     """
     None rebalancing strategy class
     """
