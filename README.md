@@ -40,6 +40,9 @@ The data sets of used for our article should be dowlonoaded  inside the *data/ex
 * Ionosphere : https://archive.ics.uci.edu/dataset/52/ionosphere
 * Breast cancer Wisconsin : https://archive.ics.uci.edu/dataset/15/breast+cancer+wisconsin+original
 * CreditCard : https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
+* MagicTel : https://www.openml.org/d/44125
+* California : https://www.openml.org/d/44090
+* House_16H : https://www.openml.org/d/44123
 
 ## Acknowledgements
 
