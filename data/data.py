@@ -1,7 +1,6 @@
 import os
 
 import pandas as pd
-import numpy as np
 
 DATA_DIR = os.path.join(
     os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "data", "externals"

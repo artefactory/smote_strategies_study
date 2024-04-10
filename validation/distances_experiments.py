@@ -1,31 +1,54 @@
+"""Short explanation of file."""
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
+# Really needs a better name
+# my_smote -> specify how it changes from "classical" SMOTE
+# sans_init_sample -> more difficult, initless ? initfree ?
+def my_smote_sans_init_sample(X, n_neighbors, n_final_sample, w_simulation, w_simulation_params):
+    """_summary_
 
-def my_smote_sans_init_sample(X, K, n_final_sample, w_simulation, w_simulation_params):
-    n_minoritaire = X.shape[0]
-    neigh = NearestNeighbors(n_neighbors=K, algorithm="ball_tree")
+    Parameters
+    ----------
+    X : _type_
+        _description_
+    n_neighbors : _type_
+        _description_
+    n_final_sample : _type_
+        _description_
+    w_simulation : _type_
+        _description_
+    w_simulation_params : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    n_minoritaire = X.shape[0] # english
+    neigh = NearestNeighbors(n_neighbors=n_neighbors, algorithm="ball_tree")
     neigh.fit(X)
     neighbor_by_index = neigh.kneighbors(
-        X=X, n_neighbors=K + 1, return_distance=False
+        X=X, n_neighbors=n_neighbors + 1, return_distance=False
     )  # le premier
     # élément sera tjrs le point en lui-même vu qu'on a fit sur X aussi.
-    n_synthetic_sample = n_final_sample  # - n_minoritaire
-    new_samples = np.zeros((n_synthetic_sample, X.shape[1]))
-    for i in range(n_synthetic_sample):
+    n_synthetic_samples = n_final_sample  # - n_minoritaire # Why changing name ?
+    new_samples = np.zeros((n_synthetic_samples, X.shape[1]))
+    for i in range(n_synthetic_samples):
         indice = np.random.randint(n_minoritaire)  # individu centrale qui sera choisi
-        w = w_simulation(
+        w = w_simulation( # w = weight ? better naming
             w_simulation_params[0], w_simulation_params[1]
         )  # facteur alpha de la première difference
-        k1 = np.random.randint(
-            1, K + 1
+        k1 = np.random.randint( # k1 = random_neighbor ? better naming
+            1, n_neighbors + 1
         )  # Sélection voisin parmi les K. On exclu 0 car c indice lui-même
         indice_neighbor = neighbor_by_index[indice][k1]
 
-        diff_1 = X[indice_neighbor, :] - X[indice, :]
+        diff_1 = X[indice_neighbor, :] - X[indice, :] # diff_1 = ? better naming
         new_observation = X[indice, :] + w * diff_1
         new_samples[i, :] = new_observation
 
@@ -33,16 +56,48 @@ def my_smote_sans_init_sample(X, K, n_final_sample, w_simulation, w_simulation_p
     return new_samples
 
 
-def compute_mean_dist(X, X_final, K):
-    neigh = NearestNeighbors(n_neighbors=K, algorithm="ball_tree")
+def compute_mean_dist(X, X_final, n_neighors):
+    """_summary_
+
+    Parameters
+    ----------
+    X : _type_
+        _description_
+    X_final : _type_
+        _description_
+    K : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    neigh = NearestNeighbors(n_neighbors=n_neighors, algorithm="ball_tree")
     neigh.fit(X.reshape(-1, 1))  #### ATTTENTIOn ici avant : X.reshape(-1, 1)
     neighbor_dist, neighbor_by_index = neigh.kneighbors(
-        X=X_final, n_neighbors=K, return_distance=True
+        X=X_final, n_neighbors=n_neighors, return_distance=True
     )
     return neighbor_dist[:, 0].mean()
 
 
-def compute_mean_dist_idee3(X, X_final, K=1):
+def compute_mean_dist_idee3(X, X_final, K=1): # Better naming of function, K -> n_neighbors, X_final -> X_synthetic ?
+    """_summary_
+
+    Parameters
+    ----------
+    X : _type_
+        _description_
+    X_final : _type_
+        _description_
+    K : int, optional
+        _description_, by default 1
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     neigh = NearestNeighbors(n_neighbors=K, algorithm="ball_tree")
     neigh.fit(X)  #### ATTTENTIOn ici avant : X.reshape(-1, 1)
     neighbor_dist, neighbor_by_index = neigh.kneighbors(
@@ -103,7 +158,7 @@ def open_plot_run(
     name_title,
     xmin=0,
     xmax=6000,
-    bool_to_save=False,
+    savefig=False,
     output_dir_save=None,
     name_file_save=None,
 ):
@@ -113,7 +168,7 @@ def open_plot_run(
     plt.figure(figsize=(10, 8))
     plt.title(name_title)
     plt.errorbar(
-        df_mean[["n"]].values.ravel(),
+        df_mean[["n"]].values.ravel(), # .values > .to_numpy() everywhere
         df_mean[["K=5"]].values.ravel(),
         yerr=df_std[["K=5"]].values.ravel(),
         label=r"$K=5$",
@@ -180,13 +235,13 @@ def open_plot_run(
     plt.yticks(fontsize=20)
 
     plt.legend(title="Legend", fontsize=15)
-    if bool_to_save == True:
+    if savefig == True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
 
 
 def run_dist_exp(list_N, output_dir, name_file):
-    list_dist_K5_mean = []
+    list_dist_K5_mean = [] # no need to put type list_xxx -> xxx
     list_dist_Ksqrt_mean = []
     list_dist_K01_mean = []
     list_dist_K03_mean = []
@@ -321,6 +376,45 @@ def save_run_normalized(
     list_dist_K08_std,
     list_normalization_std,
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : _type_
+        _description_
+    name_file : _type_
+        _description_
+    list_N : _type_
+        _description_
+    list_dist_K5_mean : _type_
+        _description_
+    list_dist_Ksqrt_mean : _type_
+        _description_
+    list_dist_K0_01_mean : _type_
+        _description_
+    list_dist_K01_mean : _type_
+        _description_
+    list_dist_K03_mean : _type_
+        _description_
+    list_dist_K08_mean : _type_
+        _description_
+    list_normalization_mean : _type_
+        _description_
+    list_dist_K5_std : _type_
+        _description_
+    list_dist_Ksqrt_std : _type_
+        _description_
+    list_dist_K0_01_std : _type_
+        _description_
+    list_dist_K01_std : _type_
+        _description_
+    list_dist_K03_std : _type_
+        _description_
+    list_dist_K08_std : _type_
+        _description_
+    list_normalization_std : _type_
+        _description_
+    """
     d_mean = {
         "n": list_N,
         "K=5": list_dist_K5_mean,
@@ -352,18 +446,41 @@ def open_plot_run_normalized(
     output_dir_open,
     name_file_save,
     name_y,
-    name_title,
+    title_name,
     xmin=0,
     xmax=6000,
-    bool_to_save=False,
+    savefig=False,
     output_dir_save=None,
     name_file_open=None,
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir_open : _type_
+        _description_
+    name_file_save : _type_
+        _description_
+    name_y : _type_
+        _description_
+    name_title : _type_
+        _description_
+    xmin : int, optional
+        _description_, by default 0
+    xmax : int, optional
+        _description_, by default 6000
+    bool_to_save : bool, optional
+        _description_, by default False
+    output_dir_save : _type_, optional
+        _description_, by default None
+    name_file_open : _type_, optional
+        _description_, by default None
+    """
     df_mean = pd.read_csv(os.path.join(output_dir_open, "mean_" + name_file_open))
     df_std = pd.read_csv(os.path.join(output_dir_open, "std_" + name_file_open))
 
     plt.figure(figsize=(10, 8))
-    plt.title(name_title)
+    plt.title(title_name)
     plt.errorbar(
         df_mean[["n"]].values.ravel(),
         df_mean[["K=5"]].values.ravel() / df_mean[["normalization"]].values.ravel(),
@@ -433,7 +550,7 @@ def open_plot_run_normalized(
     plt.yticks(fontsize=20)
 
     plt.legend(title="Legend", fontsize=15)
-    if bool_to_save == True:
+    if savefig == True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
 
@@ -578,7 +695,7 @@ def run_dist_exp_normalized(list_N, output_dir, name_file):
 
 def ROS_init_sample(X, n_final_sample):
     n_minoritaire = X.shape[0]
-    n_synthetic_sample = n_final_sample  # - n_minoritaire
+    n_synthetic_sample = n_final_sample  # - n_minoritaire # useless --> remove
     new_samples = np.zeros((n_synthetic_sample, X.shape[1]))
 
     for i in range(n_synthetic_sample):

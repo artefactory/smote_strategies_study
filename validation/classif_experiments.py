@@ -73,8 +73,8 @@ def subsample_to_ratio_indices(
     )  ## build the directory if it does not exists
     if has_previous_under_sampling:
         X_under, y_under = X[previous_under_sampling, :], y[previous_under_sampling]
-        X_positifs = X_under[np.array(y_under, dtype=bool)]
-        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)]
+        X_positifs = X_under[np.array(y_under, dtype=bool)] #to remove ?
+        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)] # english
     else:
         X_positifs = X[np.array(y, dtype=bool)]
         X_negatifs = X[np.array(1 - y, dtype=bool)]
@@ -85,7 +85,7 @@ def subsample_to_ratio_indices(
     )  ## compute number of sample to keeep
     ##int() inr order to have upper integer part
     df_X = pd.DataFrame(data=X)
-    if has_previous_under_sampling:
+    if previous_under_sampling is not None:
         indices_positifs_kept = np.random.choice(
             df_X.loc[previous_under_sampling]
             .loc[np.array(y_under, dtype=bool)]
@@ -101,13 +101,14 @@ def subsample_to_ratio_indices(
         indices_kept = np.hstack((indices_positifs_kept, indices_negatifs_kept))
     else:
         indices_positifs_kept = np.random.choice(
-            df_X.loc[np.array(y, dtype=bool)].index.values,
+            df_X.loc[np.array(y, dtype=bool)].index.to_numpy(),
             size=n_undersampling_sub,
             replace=False,
         )
-        indices_negatifs_kept = df_X.loc[np.array(1 - y, dtype=bool)].index.values
-        indices_kept = np.hstack((indices_positifs_kept, indices_negatifs_kept))
+        indices_negatifs_kept = df_X.loc[np.array(1 - y, dtype=bool)].index.to_numpy()
+        indices_kept = np.hstack((indices_positifs_kept, indices_negatifs_kept)) # kept_indexes
 
+    # set a default location + name for cache ?
     np.save(
         os.path.join(output_dir_subsampling, name_subsampling_file + ".npy"),
         indices_kept,
@@ -118,6 +119,26 @@ def subsample_to_ratio_indices(
 def read_subsampling_indices(
     X, y, dir_subsampling, name_subsampling_file, get_indexes=False
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    X : _type_
+        _description_
+    y : _type_
+        _description_
+    dir_subsampling : _type_
+        _description_
+    name_subsampling_file : _type_
+        _description_
+    get_indexes : bool, optional
+        _description_, by default False
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     indexes_subsampling = np.load(
         os.path.join(dir_subsampling, name_subsampling_file + ".npy")
     )
@@ -129,8 +150,26 @@ def read_subsampling_indices(
 
 ####### run_eval ##########
 def subsample_to_ratio(X, y, ratio, seed_sub):
-    X_positifs = X[np.array(y, dtype=bool)]
-    X_negatifs = X[np.array(1 - y, dtype=bool)]
+    """_summary_
+
+    Parameters
+    ----------
+    X : _type_
+        _description_
+    y : _type_
+        _description_
+    ratio : _type_
+        _description_
+    seed_sub : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    X_positifs = X[y == 1]
+    X_negatifs = X[y == 0]
 
     np.random.seed(seed=seed_sub)
     n_undersampling_sub = int(
@@ -139,12 +178,12 @@ def subsample_to_ratio(X, y, ratio, seed_sub):
     ##int() in order to have upper integer part
     idx = np.random.randint(len(X_positifs), size=n_undersampling_sub)
 
-    X_positifs_selected = X_positifs[idx, :]
-    y_positifs_selected = y[np.array(y, dtype=bool)][idx]
+    X_positifs_selected = X_positifs[idx]
+    y_positifs_selected = y[y == 1][idx]
 
-    X_res = np.concatenate((X_negatifs, X_positifs_selected), axis=0)
+    X_res = np.concatenate([X_negatifs, X_positifs_selected], axis=0)
     y_res = np.concatenate(
-        (y[np.array(1 - y, dtype=bool)], y_positifs_selected), axis=0
+        [y[y == 0], y_positifs_selected], axis=0
     )
     X_res, y_res = shuffle(X_res, y_res)
     return X_res, y_res
@@ -157,12 +196,8 @@ def run_eval(
     y,
     list_oversampling_and_params,
     splitter,
-    subsample=False,
-    subsubsample=False,
-    subsubsubsample=False,
-    seed_sub=11,
-    seed_subsub=9,
-    seed_subsubsub=5,
+    subsample_ratios=[0.2, 0.1, 0.01],
+    subsample_seeds=[11, 9, 5],
     to_standard_scale=True,
 ):
     """
@@ -170,7 +205,23 @@ def run_eval(
     output_dir is the path where the output files will be stored.
     list_oversampling_and_params is a list composed of tuple like (name, function, function_params, classifier).
     to_standard_scale is a boolean.
+
+    Paramters
+    ---------
+
+    Returns
+    -------
     """
+
+    # Verifying that seeds & ratios for subsample match
+    if len(subsample_ratios) != len(subsample_seeds):
+        print("subsample_ratios and subsample_seeds lenghts do not match.")
+        if len(subsample_ratios) > len(subsample_seeds):
+            print("Automatically completing seeds")
+            subsample_seeds += [123] * (len(subsample_ratios) - len(subsample_seeds))
+        else:
+            print(("Cutting seeds to match ratios"))
+            subsample_seeds = subsample_seeds[: len(subsample_ratios)]
 
     Path(output_dir).mkdir(
         parents=True, exist_ok=True
@@ -188,20 +239,20 @@ def run_eval(
 
     X_copy, y_copy = X.copy(), y.copy()
     ############## Check if undersampling is necessary ##################
-    X_positifs = X_copy[np.array(y_copy, dtype=bool)]
-    X_negatifs = X_copy[np.array(1 - y_copy, dtype=bool)]
-    if subsample:
+    X_positifs = X_copy[np.array(y_copy, dtype=bool)] # unused, remove ?
+    X_negatifs = X_copy[np.array(1 - y_copy, dtype=bool)]# unused, remove ?
+    # Two better ways to write it:
+    X_one = X_copy[y_copy == 1]
+    X_zero = X_copy[y_copy == 0]
+    # Or
+    label = np.array(y_copy, dtype=bool)
+    X_one = X_copy[label]
+    X_zero = X_copy[~label]
+
+    for ratio, seed in zip(subsample_ratios, subsample_seeds):
         X_copy, y_copy = subsample_to_ratio(
-            X_copy, y_copy, ratio=0.2, seed_sub=seed_sub
+            X_copy, y_copy, ratio=ratio, seed_sub=seed
         )
-        if subsubsample:
-            X_copy, y_copy = subsample_to_ratio(
-                X_copy, y_copy, ratio=0.1, seed_sub=seed_subsub
-            )
-            if subsubsubsample:
-                X_copy, y_copy = subsample_to_ratio(
-                    X_copy, y_copy, ratio=0.01, seed_sub=seed_subsubsub
-                )
     np.random.seed(seed=None)
 
     folds = list(splitter.split(X_copy, y_copy))
@@ -225,7 +276,9 @@ def run_eval(
             X_res, y_res = oversampling_func.fit_resample(
                 X=X_train, y=y_train, **oversampling_params
             )
-            ######### Run of the given fold ###############
+            ######### Run of the given fold ############### 
+
+            # Is shuffling useful within a fold isn't integrated in RF model ?
             X_res, y_res = shuffle(X_res, y_res)  # to put in oversampling_func
             model.fit(X_res, y_res)
             forest = hasattr(model, "estimators_") and hasattr(
@@ -263,23 +316,40 @@ def run_eval(
 
 
 def compute_metrics(output_dir, name_file, list_metric):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : _type_
+        _description_
+    name_file : _type_
+        _description_
+    list_metric : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     n_metric = len(list_metric)
-    list_names_metrics = []
+    metrics_names = []
     for m in range(n_metric):
-        list_names_metrics.append(list_metric[m][1])
-    list_names_oversamplings = np.load(
+        metrics_names.append(list_metric[m][1])
+    oversample_strategies = np.load(
         os.path.join(output_dir, "name_strats" + name_file)
     )
-    array_all_preds_strats_final = np.load(
+    predictions_by_strategy = np.load(
         os.path.join(output_dir, "preds_" + name_file)
     )
     df_all = pd.DataFrame(
-        array_all_preds_strats_final, columns=list_names_oversamplings
+        predictions_by_strategy, columns=oversample_strategies
     )
 
-    name_col_strategies = df_all.columns.tolist()[
-        1:-1
-    ]  # We remove  'y_true' and 'fold'
+    name_col_strategies = df_all.columns.tolist()
+    name_col_strategies.remove("y_true")
+    name_col_strategies.remove("fold")
+    # We remove  'y_true' and 'fold'
 
     array_resultats_metrics = np.zeros((n_metric, len(name_col_strategies)))
     array_resultats_metrics_std = np.zeros((n_metric, len(name_col_strategies)))
@@ -291,7 +361,7 @@ def compute_metrics(output_dir, name_file, list_metric):
                 df = df_all[df_all["fold"] == j]
                 y_true = df["y_true"].tolist()
                 pred_probas_all = df[col_name].tolist()
-                y_pred = pred_perso(y_pred_probas=pred_probas_all, treshold=0.5)
+                y_pred = proba_to_label(y_pred_probas=pred_probas_all, treshold=0.5)
 
                 if list_metric[k][2] == "pred":
                     value_metric = list_metric[k][0](y_true=y_true, y_pred=y_pred)
@@ -304,12 +374,12 @@ def compute_metrics(output_dir, name_file, list_metric):
             array_resultats_metrics_std[k, col_number] = np.std(list_value)
 
     df_mean_metric = pd.DataFrame(
-        array_resultats_metrics, columns=name_col_strategies, index=list_names_metrics
+        array_resultats_metrics, columns=name_col_strategies, index=metrics_names
     )
     df_std_metric = pd.DataFrame(
         array_resultats_metrics_std,
         columns=name_col_strategies,
-        index=list_names_metrics,
+        index=metrics_names,
     )
     return df_mean_metric, df_std_metric
 
@@ -317,6 +387,26 @@ def compute_metrics(output_dir, name_file, list_metric):
 def compute_metrics_several_protocols(
     output_dir, init_name_file, list_metric, bool_roc_auc_only=True, n_iter=100
 ):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : _type_
+        _description_
+    init_name_file : _type_
+        _description_
+    list_metric : _type_
+        _description_
+    bool_roc_auc_only : bool, optional
+        _description_, by default True
+    n_iter : int, optional
+        _description_, by default 100
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     list_res = []
 
     ######### CASE  ROC AUC only is computed ######
@@ -362,9 +452,8 @@ def compute_metrics_several_protocols(
     return df_final_mean, df_final_std
 
 
-class MyTimeSeriesSplit(TimeSeriesSplit):
+class PaperTimeSeriesSplit(TimeSeriesSplit):
     """
-    MyTimeSeriesSplit
     The starting split can be chosen with this child class from TimeSeriesSplit.
     """
 
@@ -387,7 +476,7 @@ class MyTimeSeriesSplit(TimeSeriesSplit):
         return folds_from_starting_split
 
 
-class MyTimeSeriesSplit_groupout(TimeSeriesSplit):
+class PaperTimeSeriesSplitWithGroupOut(TimeSeriesSplit):
     """
     MyTimeSeriesSplit with group out on col_name_id.
     All the samples with ID that have been seen during the training phase, are removed of the test set.
@@ -438,12 +527,21 @@ class MyTimeSeriesSplit_groupout(TimeSeriesSplit):
         return final_folds_from_starting_split
 
 
-def plot_roc_curves(output_dir, name_file):
+def plot_roc_curves(output_dir, filename):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : _type_
+        _description_
+    name_file : _type_
+        _description_
+    """
     list_names_oversamplings = np.load(
-        os.path.join(output_dir, "name_strats" + name_file)
+        os.path.join(output_dir, "name_strats" + filename)
     )
     array_all_preds_strats_final = np.load(
-        os.path.join(output_dir, "preds_" + name_file)
+        os.path.join(output_dir, "preds_" + filename)
     )
     df_all = pd.DataFrame(
         array_all_preds_strats_final, columns=list_names_oversamplings
@@ -460,5 +558,6 @@ def plot_roc_curves(output_dir, name_file):
 
     ax.set_title("Receiver Operating Characteristic (ROC) curves")
     ax.grid(linestyle="--")
+    plt.savefig(os.path.join(output_dir, "roc_curves_" + filename + ".png")) # idea
     plt.legend()
     plt.show()

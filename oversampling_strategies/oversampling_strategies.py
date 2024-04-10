@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-import pandas as pd
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
