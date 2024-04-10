@@ -8,15 +8,18 @@ from imblearn.over_sampling import ADASYN
 from imblearn.over_sampling import BorderlineSMOTE
 from imblearn.under_sampling import NearMiss
 
-from imblearn.base import BaseSampler
+from imblearn.over_sampling.base import BaseOverSampler
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
 
-class MySmote(BaseSampler):
+class MySmote(BaseOverSampler):
     """
     > Better naming of the class: what's the name in the paper ?
-    > Should it inherit from imblearn's BaseSampler ?
+    > Should it inherit from imblearn's BaseOverSampler ?
+    > It adds some work BUT it would be very nice for
+        - users to be sure that they can trust the code
+        - you to use all the checking methods that you can look at here
     > DOCstring: either Google or NumPy, took NumPy for example.
 
     > Here should describe class specificities briefly
@@ -68,7 +71,7 @@ class MySmote(BaseSampler):
             what it is
         """
         if n_final_samples is None and y is None:
-            raise ValueErros(
+            raise ValueError(
                 "You need to provide a value for n_final_samples or y, got None and None."
             )
 
@@ -121,22 +124,30 @@ class MySmote(BaseSampler):
         return oversampled_X, oversampled_y
 
 
-class CVSmoteModel(BaseSampler):
+class CVSmoteModel(object):
     """
     CVSmoteModel. It's an estimator and not a oversampling strategy only like the others class in this file.
     """
 
     def __init__(self, splitter, model, list_k_max=100, list_k_step=10):
-        """
-        splitter is a sk-learn spliter object (or child)
-        list_k_max is an integer
-        list_k_step is an integer
+        """_summary_
+
+        Parameters
+        ----------
+        splitter : sk-learn spliter object (or child)
+            _description_
+        model : _type_
+            _description_
+        list_k_max : int, optional
+            _description_, by default 100
+        list_k_step : int, optional
+            _description_, by default 10
         """
         self.splitter = splitter
-        self.list_k_max = list_k_max
-        self.list_k_step = list_k_step
+        self.list_k_max = list_k_max # why is it called list ?
+        self.list_k_step = list_k_step # why is it called list ?
         self.model = model
-        self.estimators_ = [0]
+        self.estimators_ = [0] # are you sure about it ?
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -156,7 +167,7 @@ class CVSmoteModel(BaseSampler):
         )
 
         best_score = -1
-        folds = list(self.splitter.split(X, y))
+        folds = list(self.splitter.split(X, y)) # you really need to transform it into a list ?
         for k in list_k_neighbors:
             scores = []
             for train, test in folds:
@@ -186,7 +197,7 @@ class CVSmoteModel(BaseSampler):
         return self.model.predict_proba(X)
 
 
-class MGS(BaseSampler):
+class MGS(object):
     """
     MGS
     """
@@ -258,7 +269,7 @@ class MGS(BaseSampler):
         return oversampled_X, oversampled_y
 
 
-class NoSampling(BaseSampler):
+class NoSampling(object):
     """
     None rebalancing strategy class
     """
