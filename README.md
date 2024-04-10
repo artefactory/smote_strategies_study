@@ -39,13 +39,13 @@ The data sets of used for our article should be dowloaded  inside the *data/exte
 * House_16H : https://www.openml.org/d/44123
 
 
-Why not add paper results here ?
+An idea would be to add paper results:
 Something like:
 
 | Dataset    | Method 1 | Method 2 |
 | -------- | ------- | ------- |
 | [Pima](https://www.kaggle.com/datasets/uciml/pima-indians-diabetes-database)  | xxx   | xxx   |
-|  [Phoneme](https://github.com/jbrownlee/Datasets/blob/master/phoneme.csv)  | xxx   | xxx   |
+| [Phoneme](https://github.com/jbrownlee/Datasets/blob/master/phoneme.csv)  | xxx   | xxx   |
 | [Abalone](https://archive.ics.uci.edu/dataset/1/abalone )   | xxx   | xxx   |
 
 ## Acknowledgements
