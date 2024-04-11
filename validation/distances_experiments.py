@@ -5,10 +5,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.neighbors import NearestNeighbors
 
+
 # Really needs a better name
 # my_smote -> specify how it changes from "classical" SMOTE
 # sans_init_sample -> more difficult, initless ? initfree ?
-def my_smote_sans_init_sample(X, n_neighbors, n_final_sample, w_simulation, w_simulation_params):
+def my_smote_sans_init_sample(
+    X, n_neighbors, n_final_sample, w_simulation, w_simulation_params
+):
     """_summary_
 
     Parameters
@@ -29,7 +32,7 @@ def my_smote_sans_init_sample(X, n_neighbors, n_final_sample, w_simulation, w_si
     _type_
         _description_
     """
-    n_minoritaire = X.shape[0] # english
+    n_minoritaire = X.shape[0]  # english
     neigh = NearestNeighbors(n_neighbors=n_neighbors, algorithm="ball_tree")
     neigh.fit(X)
     neighbor_by_index = neigh.kneighbors(
@@ -40,15 +43,15 @@ def my_smote_sans_init_sample(X, n_neighbors, n_final_sample, w_simulation, w_si
     new_samples = np.zeros((n_synthetic_samples, X.shape[1]))
     for i in range(n_synthetic_samples):
         indice = np.random.randint(n_minoritaire)  # individu centrale qui sera choisi
-        w = w_simulation( # w = weight ? better naming
+        w = w_simulation(  # w = weight ? better naming
             w_simulation_params[0], w_simulation_params[1]
         )  # facteur alpha de la première difference
-        k1 = np.random.randint( # k1 = random_neighbor ? better naming
+        k1 = np.random.randint(  # k1 = random_neighbor ? better naming
             1, n_neighbors + 1
         )  # Sélection voisin parmi les K. On exclu 0 car c indice lui-même
         indice_neighbor = neighbor_by_index[indice][k1]
 
-        diff_1 = X[indice_neighbor, :] - X[indice, :] # diff_1 = ? better naming
+        diff_1 = X[indice_neighbor, :] - X[indice, :]  # diff_1 = ? better naming
         new_observation = X[indice, :] + w * diff_1
         new_samples[i, :] = new_observation
 
@@ -81,7 +84,9 @@ def compute_mean_dist(X, X_final, n_neighors):
     return neighbor_dist[:, 0].mean()
 
 
-def compute_mean_dist_idee3(X, X_final, K=1): # Better naming of function, K -> n_neighbors, X_final -> X_synthetic ?
+def compute_mean_dist_idee3(
+    X, X_final, K=1
+):  # Better naming of function, K -> n_neighbors, X_final -> X_synthetic ?
     """_summary_
 
     Parameters
@@ -168,7 +173,7 @@ def open_plot_run(
     plt.figure(figsize=(10, 8))
     plt.title(name_title)
     plt.errorbar(
-        df_mean[["n"]].values.ravel(), # .values > .to_numpy() everywhere
+        df_mean[["n"]].values.ravel(),  # .values > .to_numpy() everywhere
         df_mean[["K=5"]].values.ravel(),
         yerr=df_std[["K=5"]].values.ravel(),
         label=r"$K=5$",
@@ -235,13 +240,13 @@ def open_plot_run(
     plt.yticks(fontsize=20)
 
     plt.legend(title="Legend", fontsize=15)
-    if savefig == True:
+    if savefig is True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
 
 
 def run_dist_exp(list_N, output_dir, name_file):
-    list_dist_K5_mean = [] # no need to put type list_xxx -> xxx
+    list_dist_K5_mean = []  # no need to put type list_xxx -> xxx
     list_dist_Ksqrt_mean = []
     list_dist_K01_mean = []
     list_dist_K03_mean = []
@@ -550,7 +555,7 @@ def open_plot_run_normalized(
     plt.yticks(fontsize=20)
 
     plt.legend(title="Legend", fontsize=15)
-    if savefig == True:
+    if savefig is True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
 
@@ -952,6 +957,6 @@ def plot_mutiple_run_real_data(
     plt.xticks(size=15)
     plt.yticks(size=15)
     plt.legend(title="Legend", fontsize=14)
-    if bool_to_save == True:
+    if bool_to_save is True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()

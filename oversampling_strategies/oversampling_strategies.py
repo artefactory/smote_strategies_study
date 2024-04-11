@@ -84,7 +84,7 @@ class MySmote(BaseOverSampler):
             if n_final_samples is None:
                 n_final_samples = (y == 0).sum()
 
-        majority_n = majority_X.shape[0]  # If 1 MUST be majority, need to be precised
+        majority_n = majority_X.shape[0]  # If 1 MUST be majority, need to be precised # Unsused ?
         # Same in ImbLearn ?
         # Why not take two cases in consideration: np.max([np.sum(y == 1), np.sum(y == 0)]) ?
 
@@ -97,6 +97,7 @@ class MySmote(BaseOverSampler):
         )
         # the first element is always the given point (my nearest neighbor is myself).
 
+        minority_n = minority_X.shape[0] # ?
         n_synthetic_samples = n_final_samples - minority_n
         new_samples = np.zeros((n_synthetic_samples, X.shape[1]))
         for i in range(n_synthetic_samples):
@@ -144,10 +145,10 @@ class CVSmoteModel(object):
             _description_, by default 10
         """
         self.splitter = splitter
-        self.list_k_max = list_k_max # why is it called list ?
-        self.list_k_step = list_k_step # why is it called list ?
+        self.list_k_max = list_k_max  # why is it called list ?
+        self.list_k_step = list_k_step  # why is it called list ?
         self.model = model
-        self.estimators_ = [0] # are you sure about it ?
+        self.estimators_ = [0]  # are you sure about it ?
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -167,7 +168,9 @@ class CVSmoteModel(object):
         )
 
         best_score = -1
-        folds = list(self.splitter.split(X, y)) # you really need to transform it into a list ?
+        folds = list(
+            self.splitter.split(X, y)
+        )  # you really need to transform it into a list ?
         for k in list_k_neighbors:
             scores = []
             for train, test in folds:
@@ -197,20 +200,24 @@ class CVSmoteModel(object):
         return self.model.predict_proba(X)
 
 
-class MGS(object):
+class MGS(BaseOverSampler):
     """
     MGS
     """
 
-    def __init__(self, K, n_points, llambda):
+    def __init__(
+        self, K, n_points, llambda, sampling_strategy="auto", random_state=None
+    ):
         """
         llambda is a float.
         """
+        super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
         self.n_points = n_points
+        self.random_state = random_state  # Add ?
 
-    def fit_resample(self, X, y=None, n_final_sample=None):
+    def _fit_resample(self, X, y=None, n_final_sample=None):
         """
         if y=None, all points are considered positive, and oversampling on all X
         if n_final_sample=None, objective is balanced data.

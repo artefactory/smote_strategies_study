@@ -28,7 +28,7 @@ def load_abalone_data():
                 "Rings",
             ],
         )
-    except:
+    except FileNotFoundError:
         raise FileNotFoundError(
             f"""Abalone dataset not found. It must be downloaded and
                                 placed in the folder {DATA_DIR} under the name {filename}"""

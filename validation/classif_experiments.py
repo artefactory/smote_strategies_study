@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 
 
-def proba_to_label(y_pred_probas, treshold=0.5): # apply_threshold ?
+def proba_to_label(y_pred_probas, treshold=0.5):  # apply_threshold ?
     """_summary_
 
     Parameters
@@ -29,7 +29,6 @@ def proba_to_label(y_pred_probas, treshold=0.5): # apply_threshold ?
     """
     # Personnally I would do it in NumPy:
     return np.array(np.array(y_pred_probas) >= treshold, dtype=int)
-
 
 
 def subsample_to_ratio_indices(
@@ -73,10 +72,10 @@ def subsample_to_ratio_indices(
     )  ## build the directory if it does not exists
     if has_previous_under_sampling:
         X_under, y_under = X[previous_under_sampling, :], y[previous_under_sampling]
-        X_positifs = X_under[np.array(y_under, dtype=bool)] #to remove ?
-        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)] # english
+        X_positifs = X_under[np.array(y_under, dtype=bool)]  # to remove ?
+        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)]  # english
     else:
-        X_positifs = X[np.array(y, dtype=bool)]
+        X_positifs = X[np.array(y, dtype=bool)] # to remove ?
         X_negatifs = X[np.array(1 - y, dtype=bool)]
 
     np.random.seed(seed=seed_sub)
@@ -106,7 +105,9 @@ def subsample_to_ratio_indices(
             replace=False,
         )
         indices_negatifs_kept = df_X.loc[np.array(1 - y, dtype=bool)].index.to_numpy()
-        indices_kept = np.hstack((indices_positifs_kept, indices_negatifs_kept)) # kept_indexes
+        indices_kept = np.hstack(
+            (indices_positifs_kept, indices_negatifs_kept)
+        )  # kept_indexes
 
     # set a default location + name for cache ?
     np.save(
@@ -182,9 +183,7 @@ def subsample_to_ratio(X, y, ratio, seed_sub):
     y_positifs_selected = y[y == 1][idx]
 
     X_res = np.concatenate([X_negatifs, X_positifs_selected], axis=0)
-    y_res = np.concatenate(
-        [y[y == 0], y_positifs_selected], axis=0
-    )
+    y_res = np.concatenate([y[y == 0], y_positifs_selected], axis=0)
     X_res, y_res = shuffle(X_res, y_res)
     return X_res, y_res
 
@@ -239,20 +238,18 @@ def run_eval(
 
     X_copy, y_copy = X.copy(), y.copy()
     ############## Check if undersampling is necessary ##################
-    X_positifs = X_copy[np.array(y_copy, dtype=bool)] # unused, remove ?
-    X_negatifs = X_copy[np.array(1 - y_copy, dtype=bool)]# unused, remove ?
+    X_positifs = X_copy[np.array(y_copy, dtype=bool)]  # unused, remove ?
+    X_negatifs = X_copy[np.array(1 - y_copy, dtype=bool)]  # unused, remove ?
     # Two better ways to write it:
-    X_one = X_copy[y_copy == 1]
-    X_zero = X_copy[y_copy == 0]
+    X_one = X_copy[y_copy == 1] # unused, remove ?
+    X_zero = X_copy[y_copy == 0] # unused, remove ?
     # Or
     label = np.array(y_copy, dtype=bool)
-    X_one = X_copy[label]
-    X_zero = X_copy[~label]
+    X_one = X_copy[label] # unused, remove ?
+    X_zero = X_copy[~label] # unused, remove ?
 
     for ratio, seed in zip(subsample_ratios, subsample_seeds):
-        X_copy, y_copy = subsample_to_ratio(
-            X_copy, y_copy, ratio=ratio, seed_sub=seed
-        )
+        X_copy, y_copy = subsample_to_ratio(X_copy, y_copy, ratio=ratio, seed_sub=seed)
     np.random.seed(seed=None)
 
     folds = list(splitter.split(X_copy, y_copy))
@@ -276,7 +273,7 @@ def run_eval(
             X_res, y_res = oversampling_func.fit_resample(
                 X=X_train, y=y_train, **oversampling_params
             )
-            ######### Run of the given fold ############### 
+            ######### Run of the given fold ###############
 
             # Is shuffling useful within a fold isn't integrated in RF model ?
             X_res, y_res = shuffle(X_res, y_res)  # to put in oversampling_func
@@ -336,15 +333,9 @@ def compute_metrics(output_dir, name_file, list_metric):
     metrics_names = []
     for m in range(n_metric):
         metrics_names.append(list_metric[m][1])
-    oversample_strategies = np.load(
-        os.path.join(output_dir, "name_strats" + name_file)
-    )
-    predictions_by_strategy = np.load(
-        os.path.join(output_dir, "preds_" + name_file)
-    )
-    df_all = pd.DataFrame(
-        predictions_by_strategy, columns=oversample_strategies
-    )
+    oversample_strategies = np.load(os.path.join(output_dir, "name_strats" + name_file))
+    predictions_by_strategy = np.load(os.path.join(output_dir, "preds_" + name_file))
+    df_all = pd.DataFrame(predictions_by_strategy, columns=oversample_strategies)
 
     name_col_strategies = df_all.columns.tolist()
     name_col_strategies.remove("y_true")
@@ -410,7 +401,7 @@ def compute_metrics_several_protocols(
     list_res = []
 
     ######### CASE  ROC AUC only is computed ######
-    if bool_roc_auc_only == True:
+    if bool_roc_auc_only is True:
         for i in range(n_iter):
             name_file = init_name_file + str(i) + ".npy"
             df_metrics_mean, df_metrics_std = compute_metrics(
@@ -552,12 +543,12 @@ def plot_roc_curves(output_dir, filename):
     for col in df_all.drop(["y_true", "fold"], axis=1).columns:
         fpr, tpr, _ = roc_curve(df_all[["y_true"]].values, df_all[[col]].values)
         roc_auc = auc(fpr, tpr)
-        roc_display = RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot(
+        RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot( 
             label=col, ax=ax
-        )
+        ) 
 
     ax.set_title("Receiver Operating Characteristic (ROC) curves")
     ax.grid(linestyle="--")
-    plt.savefig(os.path.join(output_dir, "roc_curves_" + filename + ".png")) # idea
+    plt.savefig(os.path.join(output_dir, "roc_curves_" + filename + ".png"))  # idea
     plt.legend()
     plt.show()
