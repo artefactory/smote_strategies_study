@@ -1,4 +1,5 @@
 .DS_Store
 *.csv
 *.data
+*.arff
 *__pycache__

@@ -147,7 +147,7 @@ def load_yeast_data():
             "yeast.data",
         ),
         sep=r"\s+",
-        header=0,
+        names=['Sequence_Name','mcg','gvh','alm','mit','erl','pox','vac','nuc','localization_site'],
     )
     df_yeast.replace(
         {
