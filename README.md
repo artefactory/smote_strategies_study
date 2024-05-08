@@ -36,7 +36,7 @@ The data sets of used for our article should be dowloaded  inside the *data/exte
 * CreditCard : https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
 * MagicTel : https://www.openml.org/d/44125
 * California : https://www.openml.org/d/44090
-* House_16H : https://www.openml.org/d/44123
+* House_16H : https://openml.org/d/821 
 
 
 An idea would be to add paper results:

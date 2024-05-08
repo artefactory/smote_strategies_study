@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+from scipy.io.arff import loadarff 
 
 DATA_DIR = os.path.join(
     os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "data", "externals"
@@ -47,7 +48,6 @@ def load_abalone_data():
         14,
         11,
         12,
-        18,
         13,
         5,
         4,
@@ -192,6 +192,70 @@ def load_haberman_data():
     X_haberman = df_haberman.drop(["Class"], axis=1).to_numpy()
     y_haberman = df_haberman[["Class"]].to_numpy().ravel()
     return X_haberman, y_haberman
+
+
+def load_magictel_data():
+    """
+    Load haberman data set from data\dexternals folder
+    The name of the file shoulde be : magictel.arff
+    """
+    raw_magic = loadarff(
+                         os.path.join(
+                             os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+                             "data",
+                             "externals",
+                             "magictelescope.arff",
+                             )
+        )
+    df_magic = pd.DataFrame(raw_magic[0])
+    df_magic.replace({'class':{b'h':0,b'g':1}},inplace=True)
+    X_magic = df_magic.drop(['class'],axis=1).to_numpy()   
+    y_magic = df_magic[['class']].to_numpy().ravel()
+
+    return X_magic, y_magic
+
+
+def load_california_data():
+    """
+    Load California data set from data\dexternals folder
+    The name of the file shoulde be : california.arff
+    """
+    raw_cal_housing = loadarff(
+                         os.path.join(
+                             os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+                             "data",
+                             "externals",
+                             "california.arff",
+                             )
+        )
+    df_cal_housing = pd.DataFrame(raw_cal_housing[0])
+    df_cal_housing.replace({'price':{b'True':1,b'False':0}},inplace=True)
+    X_cal_housing = df_cal_housing.drop(['price'],axis=1).to_numpy()
+    y_cal_housing = df_cal_housing[['price']].to_numpy().ravel()
+
+    return X_cal_housing, y_cal_housing
+
+
+def load_house_data():
+    """
+    Load House_16h data set from data\dexternals folder
+    The name of the file shoulde be : house_16H.arff
+    """
+    raw_house_16H = loadarff(
+                         os.path.join(
+                             os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+                             "data",
+                             "externals",
+                             "house_16H.arff",
+                             )
+        )
+    df_house_16H = pd.DataFrame(raw_house_16H[0])
+    df_house_16H.replace({'binaryClass':{b'P':0,b'N':1}},inplace=True) 
+    X_house_16H = df_house_16H.drop(['binaryClass'],axis=1).to_numpy()
+    y_house_16H = df_house_16H[['binaryClass']].to_numpy().ravel()
+
+    return X_house_16H, y_house_16H
+
 
 
 ####### GA4 ##########
