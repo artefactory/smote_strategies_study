@@ -332,8 +332,7 @@ class MGS2(BaseOverSampler):
 
         # sampling all new points
         #u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
-        #central_points_As = As[indices]
-        #new_samples = mus[indices] + np.matmul(central_points_As, u[:,:,np.newaxis]).squeeze()
+        #new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
         indices = np.random.randint(n_minoritaire, size=n_synthetic_sample)
         new_samples = np.zeros((n_synthetic_sample, dimension))
         for i,central_point in enumerate(indices):
