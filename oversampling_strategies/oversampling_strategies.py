@@ -327,8 +327,7 @@ class MGS2(BaseOverSampler):
         # spectral decomposition of all covariances
         eigen_values, eigen_vectors = np.linalg.eigh(covs) ## long
         eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** .5
-        Diag = (np.eye(eigen_values.shape[1]) * eigen_values[:, np.newaxis])
-        As = np.matmul(eigen_vectors,Diag)
+        As = [eigen_vector.dot(eigen_value) for eigen_vector, eigen_value in zip(eigen_vectors, eigen_values)]
 
         # sampling all new points
         #u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
