@@ -256,80 +256,45 @@ def load_house_data():
 
     return X_house_16H, y_house_16H
 
-
-
-####### GA4 ##########
-
-
-def preprocess_ga4_7features(df):
-    """_summary_
-
-    Parameters
-    ----------
-    df : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
+def load_credit_data():
     """
-    # Preprocessing
-    df["browser"] = df["browser"].apply(lambda x: "Other" if x == "<Other>" else x)
-    df["operating_system"] = df["operating_system"].apply(
-        lambda x: "Other" if x == "<Other>" else x
-    )
-
-    # Converts dates into datetimes:
-    df["start_feature_date"] = pd.to_datetime(df["start_feature_date"])
-    df["end_feature_date"] = pd.to_datetime(df["end_feature_date"])
-
-    # Sort samples in chrologic time.
-    df = df.sort_values(by=["start_feature_date"], ascending=True)
-    df.reset_index(drop=True, inplace=True)
-
-    # build the meta dataframe
-    meta_df = df[["user_pseudo_id"]].copy()
-    meta_df["fold"] = 0  # futre colonne fold
-    meta_df["keep_in_test"] = False
-
-    X = df[
-        [
-            "total_events",
-            "total_page_view",
-            "total_add_to_cart",
-            "number_of_sessions",
-            "engaged_sessions",
-            "bounce_rate",
-            "total_purchase",
-        ]
-    ].copy()
-    y = df[["target_label"]].copy()
-
-    return X, y, meta_df
-
-
-def load_ga4_data():
+    Load Creditcard data set from data\dexternals folder
+    The name of the file shoulde be : creditcard.csv
     """
-    Load preprocessed GA4 diabates data set from data\dexternals folder.
-    The name of the file shoulde be : data_ga4.csv.
-    """
-    df = pd.read_csv(
+    df_credit = pd.read_csv(
         os.path.join(
             os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
             "data",
             "externals",
-            "data_ga4.csv",
+            "creditcard.csv",
         )
     )
-    X, y, meta_df = preprocess_ga4_7features(df=df)
-    return X.to_numpy(), y.to_numpy().ravel(), meta_df
+    meta_df_credit = df_credit[['Time']]
+    X_credit = df_credit.drop(['Time','Class'],axis=1).to_numpy()
+    y_credit = df_credit[['Class']].to_numpy().ravel()
+
+    return X_credit, y_credit, meta_df_credit
 
 
-def load_df_positifs_ga4():
-    """small docstring here."""
-    df_GA4, meta_df_GA4 = load_ga4_data()
-    df_positifs_GA4 = df_GA4[df_GA4["target_label"] == 1].copy().reset_index(drop=True)
-    df_positifs_GA4.drop(["target_label"], axis=1, inplace=True)
-    df_positifs_GA4
-    return df_positifs_GA4
+from ucimlrepo import fetch_ucirepo 
+def load_wine_data():
+
+    """
+    Load wine data set from ucimlrepo
+    You should have installl ucimlrepo
+    """
+    # fetch dataset 
+    wine_quality = fetch_ucirepo(id=186) 
+
+    # data (as pandas dataframes) 
+    X = wine_quality.data.features 
+    y = wine_quality.data.targets 
+    df_wine = pd.concat([X,y],axis=1)
+
+    dict_mapping = {5:0, 6:0, 8:1}
+    df_wine = df_wine[df_wine['quality'].isin([5,6,8])].copy()
+    df_wine.replace({'quality':dict_mapping},inplace=True)
+    X_wine = df_wine.drop(['quality'],axis=1).to_numpy()
+    y_wine = df_wine[['quality']].to_numpy().ravel()
+    return X_wine,y_wine
+

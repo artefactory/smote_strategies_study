@@ -518,6 +518,15 @@ class PaperTimeSeriesSplitWithGroupOut(TimeSeriesSplit):
         return final_folds_from_starting_split
 
 
+def depth_func_linspace(min_value,max_value,size=10,add_border=False):
+    list_depth = np.linspace(min_value,max_value,size, dtype=int).tolist()
+    if add_border:
+        border_array = [max_value-3,max_value-2,max_value-1,max_value,None]
+    else :
+        border_array=[None]
+    list_depth.extend(border_array)
+    return list(dict.fromkeys(list_depth))
+
 def plot_roc_curves(output_dir, filename):
     """_summary_
 
