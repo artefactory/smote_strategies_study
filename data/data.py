@@ -256,6 +256,171 @@ def load_house_data():
 
     return X_house_16H, y_house_16H
 
+def load_vehicle_data():
+    """
+    Load vehicle data set from data\dexternals folder
+    All the file dowloaded/unziped from UCI should be in a folder named vehicle vehicle
+    """
+    names_vehicle = ['COMPACTNESS','CIRCULARITY','DISTANCE_CIRCULARITY','RADIUS_RATIO','PR_AXIS_ASPECT_RATIO','MAX_LENGTH_ASPECT_RATIO',
+                     'SCATTER_RATIO','ELONGATEDNESS','PR_AXIS_RECTANGULARITY','MAX_LENGTH_RECTANGULARITY','SCALED_VARIANCE_ALONG_MAJOR_AXIS',
+                     'SCALED_VARIANCE_ALONG_MINOR_AXIS','SCALED_RADIUS_OF_GYRATION','SKEWNESS_ABOUT_MAJOR_AXIS','SKEWNESS_ABOUT_MINOR_AXIS',
+                     'KURTOSIS_ABOUT_MINOR_AXIS','KURTOSIS_ABOUT_MAJOR_AXIS','HOLLOWS_RATIO', 'Class']
+    df_tmp_1 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xaa.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_2 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xai.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_3 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xah.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_4 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xag.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_5 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xaf.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_6 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xae.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_7 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xad.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_8 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xac.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_tmp_9 = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "vehicle",
+            "xab.dat",
+        ),
+        sep=r"\s+",
+        header=None,
+    )
+    df_vehicle = pd.concat([df_tmp_1,df_tmp_2,df_tmp_3,df_tmp_4,df_tmp_5,df_tmp_6,df_tmp_7,df_tmp_8,df_tmp_9],axis=0)
+    df_vehicle.columns = names_vehicle
+    df_vehicle.replace({'Class':{'van':1,'saab':0,'bus':0,'opel':0}},inplace=True)
+    X_vehicle = df_vehicle.drop(['Class'],axis=1).to_numpy()
+    y_vehicle = df_vehicle[['Class']].to_numpy().ravel()
+
+    return X_vehicle,y_vehicle
+
+def load_breastcancer_data():
+    """
+    Load Breast cancer wisconsin data set from data\dexternals folder
+    The name of the file shoulde be : breast-cancer-wisconsin.data
+    """
+    df_b_cancer_w = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "breast-cancer-wisconsin.data",
+        ),
+        sep=",",
+        header=None,
+    )
+    df_b_cancer_w = pd.read_csv('/home/abdoulaye_sakho/Code/data/breast-cancer-wisconsin.data',sep=",",header=None)
+    df_b_cancer_w.columns = ['Sample_code_number','Clump_thickness','Uniformity_of_cell_size',
+                            'Uniformity_of_cell_shape','Marginal_adhesion','Single_epithelial_cell_size',
+                            'Bare_nuclei','Bland_chromatin','Normal_nucleoli','Mitoses','Class']
+    df_b_cancer_w.replace({'Class':{2:0,4:1}},inplace=True)
+    df_b_cancer_w = df_b_cancer_w[df_b_cancer_w.Bare_nuclei != '?']
+    df_b_cancer_w = df_b_cancer_w.astype({'Bare_nuclei': 'int64'})
+    df_b_cancer_w.drop_duplicates(subset=["Sample_code_number"], keep='first',inplace=True)
+    X_b_cancer_w =  df_b_cancer_w.drop(['Class'],axis=1).to_numpy()
+    y_b_cancer_w =  df_b_cancer_w[['Class']].to_numpy().ravel()
+
+    return X_b_cancer_w,y_b_cancer_w
+
+def load_ionosphere_data():
+    """
+    Load ionosphere data set from data\dexternals folder
+    The name of the file shoulde be : ionosphere.data
+    """
+    df_ionosphere = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "ionosphere.data",
+        ),
+        sep=",",
+        header=None,
+    )
+    df_ionosphere.replace({34:{'g':0,'b':1}},inplace=True)
+    X_ionosphere =  df_ionosphere.drop([1,34],axis=1).to_numpy()
+    y_ionosphere =  df_ionosphere[[34]].to_numpy().ravel()
+
+    return X_ionosphere, y_ionosphere
+
 def load_credit_data():
     """
     Load Creditcard data set from data\dexternals folder

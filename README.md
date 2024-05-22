@@ -12,13 +12,13 @@ In praticular, you will find code to reproduce the paper experiments as well as 
 
 ## Getting Started
 
-In order to use our xxx strategy:
-  - this [notebook](notebooks/resampling_example.ipynb) illustrates how to use it
-  - the strategy is implemented [here](./oversampling_strategies/)
-
 If you want to reproduce our paper experiments:
   - the notebooks [here](notebooks/classif_experiments.ipynb) and [here](notebooks/distances_experiments.ipynb) reproduce the experiments
   - thise [code](./validation) contains implementation the protocols used for the numerical experiments of our article. 
+
+In order to use our MGS strategy:
+  - this [notebook](notebooks/resampling_example.ipynb) illustrates how to use it
+  - the strategy is implemented [here](./oversampling_strategies/)
 
 ## Data sets
 
