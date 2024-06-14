@@ -198,6 +198,7 @@ def run_eval(
     #subsample_ratios=[0.2, 0.1, 0.01],
     #subsample_seeds=[11, 9, 5],
     to_standard_scale=True,
+    categorical_features=None
 ):
     """
     Main function of the procol.
@@ -268,7 +269,12 @@ def run_eval(
             X_test = X_copy[test]
             if to_standard_scale:
                 scaler = StandardScaler()
-                X_train = scaler.fit_transform(X_train)
+                if categorical_features==None:
+                    X_train = scaler.fit_transform(X_train)
+                else:
+                    bool_mask = np.ones((X_train.shape[1]), dtype=bool)
+                    bool_mask[categorical_features]= False
+                    X_train[:,bool_mask] = scaler.fit_transform(X_train[:,bool_mask]) ## continuous features only
 
             X_res, y_res = oversampling_func.fit_resample(
                 X=X_train, y=y_train, **oversampling_params
@@ -289,7 +295,12 @@ def run_eval(
                 list_tree_depth_name.append(oversampling_name)
 
             if to_standard_scale:
-                X_test = scaler.transform(X_test)
+                if categorical_features==None:
+                    X_test = scaler.transform(X_test)
+                else:
+                    bool_mask = np.ones((X_test.shape[1]), dtype=bool)
+                    bool_mask[categorical_features]= False
+                    X_test[:,bool_mask] = scaler.transform(X_test[:,bool_mask]) ## continuous features only
             y_pred_probas = model.predict_proba(X_test)[:, 1]
 
             ######## Results are saved ###################
@@ -301,10 +312,10 @@ def run_eval(
                 list_all_preds[0].extend(
                     y_copy[test]
                 )  # save the information of the target value
-
-    pd.DataFrame(np.array(list_tree_depth).T, columns=list_tree_depth_name).to_csv(
-        os.path.join(output_dir, "depth" + name_file[:-4] + ".csv")
-    )
+    if len(list_tree_depth) != 0:
+        pd.DataFrame(np.array(list_tree_depth).T, columns=list_tree_depth_name).to_csv(
+            os.path.join(output_dir, "depth" + name_file[:-4] + ".csv")
+        )
     runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
     np.save(runs_path_file_strats, np.array(list_all_preds).T)
     np.save(
