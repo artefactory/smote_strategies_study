@@ -243,7 +243,7 @@ class MGS(BaseOverSampler):
 
         n_synthetic_sample = n_final_sample - n_minoritaire
         new_samples = np.zeros((n_synthetic_sample, dimension))
-        np.seed(self.random_state)
+        np.random.seed(self.random_state)
         for i in range(n_synthetic_sample):
             indice = np.random.randint(n_minoritaire)
             indices_neigh = [
@@ -266,7 +266,7 @@ class MGS(BaseOverSampler):
                 mu, sigma, check_valid="raise"
             ).T
             new_samples[i, :] = new_observation
-        np.seed()
+        np.random.seed()
 
         oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
         oversampled_y = np.hstack(
