@@ -213,19 +213,6 @@ def run_eval(
     -------
     """
 
-    # Verifying that seeds & ratios for subsample match
-    #if len(subsample_ratios) != len(subsample_seeds):
-    #    print("subsample_ratios and subsample_seeds lenghts do not match.")
-    #    if len(subsample_ratios) > len(subsample_seeds):
-    #        print("Automatically completing seeds")
-    #        subsample_seeds += [123] * (len(subsample_ratios) - len(subsample_seeds))
-    #    else:
-    #        print(("Cutting seeds to match ratios"))
-    #        subsample_seeds = subsample_seeds[: len(subsample_ratios)]
-
-    #Path(output_dir).mkdir(
-    #    parents=True, exist_ok=True
-    #)  ## build the directory if it does not exists
     ################## INITIALISATION #################
     n_strategy = len(list_oversampling_and_params)
     list_names_oversamplings = ["y_true"] + [
@@ -238,20 +225,6 @@ def run_eval(
     list_tree_depth_name = []
 
     X_copy, y_copy = X.copy(), y.copy()
-    ############## Check if undersampling is necessary ##################
-    #X_positifs = X_copy[np.array(y_copy, dtype=bool)]  # unused, remove ?
-    #X_negatifs = X_copy[np.array(1 - y_copy, dtype=bool)]  # unused, remove ?
-    ## Two better ways to write it:
-    #X_one = X_copy[y_copy == 1] # unused, remove ?
-    #X_zero = X_copy[y_copy == 0] # unused, remove ?
-    # Or
-    #label = np.array(y_copy, dtype=bool)
-    #X_one = X_copy[label] # unused, remove ?
-    #X_zero = X_copy[~label] # unused, remove ?
-
-    #for ratio, seed in zip(subsample_ratios, subsample_seeds):
-    #    X_copy, y_copy = subsample_to_ratio(X_copy, y_copy, ratio=ratio, seed_sub=seed)
-    #np.random.seed(seed=None)
 
     folds = list(splitter.split(X_copy, y_copy))
     ##############################################
