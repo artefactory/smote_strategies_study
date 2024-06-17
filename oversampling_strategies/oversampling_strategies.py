@@ -14,116 +14,6 @@ from imblearn.utils import check_target_type
 from collections import Counter
 
 
-class MySmote(BaseOverSampler): # to delete 
-    """
-    > Better naming of the class: what's the name in the paper ?
-    > Should it inherit from imblearn's BaseOverSampler ?
-    > It adds some work BUT it would be very nice for
-        - users to be sure that they can trust the code
-        - you to use all the checking methods that you can look at here
-    > DOCstring: either Google or NumPy, took NumPy for example.
-
-    > Here should describe class specificities briefly
-    """
-
-    def __init__(self, n_neighbors, w_simulation, w_simulation_params):
-        """Instantiation of MySmote.
-
-
-        Parameters
-        ----------
-        n_neighbors : type
-            what it does
-
-        w_simulation : type
-            what is does
-
-        w_simulation_params : type
-            what is does
-        """
-        self.n_neighbors = n_neighbors
-        self.w_simulation = w_simulation
-        self.w_simulation_params = w_simulation_params
-
-    def fit_resample(self, X, y=None, n_final_samples=None):
-        """Resamples the dataset.
-
-
-        if y=None, all points are considered positive, and oversampling on all X
-        if n_final_sample=None, objective is balanced data.
-
-
-        Parameters
-        ----------
-        X : type
-            what it does
-
-        y : type
-            what is does, default is None.
-
-        n_final_samples : type
-            what is does, default is None.
-
-        Returns
-        -------
-        oversampled_X : type
-            what it is
-        oversampled_y : type
-            what it is
-        """
-        if n_final_samples is None and y is None:
-            raise ValueError(
-                "You need to provide a value for n_final_samples or y, got None and None."
-            )
-
-        if y is None:
-            majority_X = X  # English
-            minority_X = np.ones((0, X.shape[1]))
-        else:
-            majority_X = X[y == 1]
-            minority_X = X[y == 0]
-            if n_final_samples is None:
-                n_final_samples = (y == 0).sum()
-
-        majority_n = majority_X.shape[0]  # If 1 MUST be majority, need to be precised # Unsused ?
-        # Same in ImbLearn ?
-        # Why not take two cases in consideration: np.max([np.sum(y == 1), np.sum(y == 0)]) ?
-
-        nearest_neighbor = NearestNeighbors(
-            n_neighbors=self.n_neighbors, algorithm="ball_tree"
-        )
-        nearest_neighbor.fit(majority_X)
-        neighbor_by_index = nearest_neighbor.kneighbors(
-            X=majority_X, n_neighbors=self.n_neighbors + 1, return_distance=False
-        )
-        # the first element is always the given point (my nearest neighbor is myself).
-
-        minority_n = minority_X.shape[0] # ?
-        n_synthetic_samples = n_final_samples - minority_n
-        new_samples = np.zeros((n_synthetic_samples, X.shape[1]))
-        for i in range(n_synthetic_samples):
-            central_index = np.random.randint(
-                minority_n
-            )  # central point that is chosen
-
-            chosen_neighbor = np.random.randint(
-                1, self.n_neighbors + 1
-            )  # nearest neighbors which is choisen. The central point itself is excluded (0 excluded)
-            neighbor_index = neighbor_by_index[central_index][chosen_neighbor]
-
-            weight = self.w_simulation(
-                **self.w_simulation_params
-            )  # factor of the difference betweeen the central point and the selected neighbor
-            new_samples[i, :] = majority_X[central_index] + weight * (
-                majority_X[neighbor_index] - majority_X[central_index]
-            )
-
-        oversampled_X = np.concatenate((minority_X, majority_X, new_samples), axis=0)
-        oversampled_y = np.hstack(
-            (np.full(len(minority_X), 0), np.full((n_final_samples,), 1))
-        )
-
-        return oversampled_X, oversampled_y
 
 
 class CVSmoteModel(object):
@@ -205,7 +95,7 @@ class CVSmoteModel(object):
 
 class MGS(BaseOverSampler):
     """
-    MGS
+    MGS : Multivariate Gaussian SMOTE
     """
 
     def __init__(
@@ -283,7 +173,7 @@ class MGS(BaseOverSampler):
 
 class MGS2(BaseOverSampler):
     """
-    MGS
+    MGS2 : Faster version of MGS using SVD
     """
 
     def __init__(
@@ -492,12 +382,15 @@ class MGS_NC(BaseOverSampler):
         ############### CATEGORICAL ##################
             if self.version==1: ## on prend le plus commun
                 #most_common,most_common_count = stats.mode(X_positifs_categorical[indice_neighbors,:],axis=0)
-                most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,:])]
-                new_samples_cat[i, :] = most_common
+                for cat_feature in range(len(self.categorical_features)):
+                    #most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,cat_feature])]
+                    most_common = Counter(X_positifs_categorical[indice_neighbors,cat_feature]).most_common(1)[0][0]
+                    new_samples_cat[i, cat_feature] = most_common
             elif self.version==2: ## un des plus proches voisin au hasard
-                rng = np.random.default_rng()
-                new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
-                
+                #rng = np.random.default_rng()
+                #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)     
         
         ##### END ######
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
@@ -629,14 +522,16 @@ class MGS_cat(BaseOverSampler):
         ############### CATEGORICAL ##################
             if self.version==1: ## on prend le plus commun
                 #most_common,most_common_count = stats.mode(X_positifs_categorical[indice_neighbors,:],axis=0)
-                most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,:])]
-                new_samples_cat[i, :] = most_common
+                for cat_feature in range(len(self.categorical_features)):
+                    #most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,cat_feature])]
+                    most_common = Counter(X_positifs_categorical[indice_neighbors,cat_feature]).most_common(1)[0][0]
+                    new_samples_cat[i, cat_feature] = most_common
             elif self.version==2: ## un des plus proches voisin au hasard
-                rng = np.random.default_rng()
-                new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
-                #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],p=neighbor_by_dist[indice][indices_neigh],replace=False)
+                #rng = np.random.default_rng()
+                #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)
                 
-        
         ##### END ######
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
         new_samples_final[:,bool_mask] = new_samples
@@ -660,15 +555,15 @@ class MGS_cat(BaseOverSampler):
     
 
 # Our New Proposed SMOTE Method
-from sklearn.utils import check_array, safe_indexing, sparsefuncs_fast, check_X_y, check_random_state
+from sklearn.utils import check_array, _safe_indexing, sparsefuncs_fast, check_random_state
 from scipy import stats
 from numbers import Integral
 from scipy import sparse
 import pandas as pd
 from sklearn import clone
-from sklearn.neighbors import KNeighborsMixin
-from imblearn.utils import raise_isinstance_error
-class SMOTENC():
+from sklearn.neighbors._base import KNeighborsMixin
+from imblearn.exceptions import raise_isinstance_error
+class SMOTE_ENC():
     
     def __init__(self, categorical_features):
         self.categorical_features = categorical_features
@@ -679,7 +574,7 @@ class SMOTENC():
         elif isinstance(nn_object, KNeighborsMixin):
             return clone(nn_object)
         else:
-            raise_isinstance_error(nn_name, [int, KNeighborsMixin], nn_object)     
+            raise_isinstance_error(nn_name, [int, KNeighborsMixin], nn_object)  ### A regerder en détail     
     
     def generate_samples(self, X, nn_data, nn_num, rows, cols, steps, continuous_features_,):
         rng = check_random_state(42)
@@ -754,7 +649,7 @@ class SMOTENC():
             encoded_dict_list.append(OE_dict)
 
             X.loc[:, column] = X[column].map(OE_dict)
-            nan_idx_array = np.ravel(np.argwhere(np.isnan(X.loc[:, column])))
+            nan_idx_array = np.ravel(np.argwhere(np.isnan(X.loc[:, column]).to_numpy())) ## Add .tonumpy() Abd
             if len(nan_idx_array) > 0 :
                 nan_dict[c] = nan_idx_array
             c = c + 1
@@ -793,7 +688,7 @@ class SMOTENC():
 
         X_continuous = X[:, continuous_features_]
         X_continuous = check_array(X_continuous, accept_sparse=['csr', 'csc'])
-        X_minority = safe_indexing(X_continuous, np.flatnonzero(y == class_minority))
+        X_minority = _safe_indexing(X_continuous, np.flatnonzero(y == class_minority))
 
         if sparse.issparse(X):
             if X.format == 'csr':
@@ -818,7 +713,7 @@ class SMOTENC():
             if n_samples == 0:
                 continue
             target_class_indices = np.flatnonzero(y == class_sample)
-            X_class = safe_indexing(X_encoded, target_class_indices)
+            X_class = _safe_indexing(X_encoded, target_class_indices)
             nn_k_ = self.chk_neighbors(5, 1)
             nn_k_.fit(X_class)
 
