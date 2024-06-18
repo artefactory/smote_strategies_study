@@ -228,6 +228,7 @@ class MGS2(BaseOverSampler):
         eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** .5
         As = [eigen_vectors[i].dot(eigen_values[i]) for i in range(len(eigen_values))]
 
+        np.random.seed(self.random_state)
         # sampling all new points
         #u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
         #new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
@@ -237,6 +238,7 @@ class MGS2(BaseOverSampler):
             u = np.random.normal(loc=0, scale=1, size=dimension)
             new_observation = mus[central_point, :] + As[central_point].dot(u)
             new_samples[i, :] = new_observation
+        np.random.seed()
         
         oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
         oversampled_y = np.hstack(
@@ -285,7 +287,7 @@ class MGS_NC(BaseOverSampler):
         self.n_points = n_points
         self.categorical_features = categorical_features
         self.version=version
-        self.random_state = random_state  # Add ?
+        self.random_state = random_state 
         
     def _check_X_y(self, X, y):
         """Overwrite the checking to let pass some string for categorical
@@ -301,7 +303,7 @@ class MGS_NC(BaseOverSampler):
         super()._validate_estimator()
         if self.categorical_features_.size == 0:
             raise ValueError(
-                "SMOTE-NC is not designed to work only with numerical "
+                "MGS-NC is not designed to work only with numerical "
                 "features. It requires some categorical features."
             )
     def _fit_resample(self, X, y=None, n_final_sample=None):
@@ -357,6 +359,8 @@ class MGS_NC(BaseOverSampler):
         n_synthetic_sample = n_final_sample - n_minoritaire
         new_samples = np.zeros((n_synthetic_sample, dimension_continuous))
         new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
+
+        np.random.seed(self.random_state)
         for i in range(n_synthetic_sample):
             ######### CONTINUOUS ################
             indice = np.random.randint(n_minoritaire)
@@ -391,6 +395,7 @@ class MGS_NC(BaseOverSampler):
                 #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)     
+        np.random.seed()
         
         ##### END ######
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
@@ -432,7 +437,7 @@ class MGS_cat(BaseOverSampler):
         self.n_points = n_points
         self.categorical_features = categorical_features
         self.version=version
-        self.random_state = random_state  # Add ?
+        self.random_state = random_state 
         
     def _check_X_y(self, X, y):
         """Overwrite the checking to let pass some string for categorical
@@ -471,7 +476,7 @@ class MGS_cat(BaseOverSampler):
                 n_final_sample = (y == 0).sum()
         if len(self.categorical_features) == X.shape[1]:
             raise ValueError(
-                "SMOTE-NC is not designed to work only with categorical "
+                "MGS_cat is not designed to work only with categorical "
                 "features. It requires some numerical features."
             )
                 
@@ -498,6 +503,7 @@ class MGS_cat(BaseOverSampler):
         n_synthetic_sample = n_final_sample - n_minoritaire
         new_samples = np.zeros((n_synthetic_sample, dimension))
         new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
+        np.random.seed(self.random_state)
         for i in range(n_synthetic_sample):
             indice = np.random.randint(n_minoritaire)
             indices_neigh = [
@@ -531,7 +537,8 @@ class MGS_cat(BaseOverSampler):
                 #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)
-                
+        np.random.seed() 
+        
         ##### END ######
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
         new_samples_final[:,bool_mask] = new_samples
@@ -553,6 +560,139 @@ class MGS_cat(BaseOverSampler):
 
         return oversampled_X, oversampled_y
     
+class MultiOutPutClassifier_and_MGS(BaseOverSampler):
+    """
+    MGS
+    """
+
+    def __init__(
+        self, K, n_points, llambda,categorical_features,Classifier,sampling_strategy="auto", random_state=None
+    ):
+        """
+        llambda is a float.
+        """
+        super().__init__(sampling_strategy=sampling_strategy)
+        self.K = K
+        self.llambda = llambda
+        self.n_points = n_points
+        self.categorical_features = categorical_features
+        self.Classifier = Classifier
+        self.random_state = random_state  # Add ?
+        
+    def _check_X_y(self, X, y):
+        """Overwrite the checking to let pass some string for categorical
+        features.
+        """
+        y, binarize_y = check_target_type(y, indicate_one_vs_all=True)
+        #X = _check_X(X)
+        #self._check_n_features(X, reset=True)
+        #self._check_feature_names(X, reset=True)
+        return X, y, binarize_y
+
+    def _validate_estimator(self):
+        super()._validate_estimator()
+        if self.categorical_features_.size == 0:
+            raise ValueError(
+                "MultiOutPutClassifier_and_MGS is not designed to work only with numerical "
+                "features. It requires some categorical features."
+            )
+
+    def _fit_resample(self, X, y=None, n_final_sample=None):
+        """
+        if y=None, all points are considered positive, and oversampling on all X
+        if n_final_sample=None, objective is balanced data.
+        """
+        
+        if y is None:
+            X_positifs = X
+            X_negatifs = np.ones((0, X.shape[1]))
+            assert (
+                n_final_sample is not None
+            ), "You need to provide a number of final samples."
+        else:
+            X_positifs = X[y == 1]
+            X_negatifs = X[y == 0]
+            if n_final_sample is None:
+                n_final_sample = (y == 0).sum()
+        if len(self.categorical_features) == X.shape[1]:
+            raise ValueError(
+                "MultiOutPutClassifier_and_MGS is not designed to work only with categorical "
+                "features. It requires some numerical features."
+            )
+                
+        bool_mask = np.ones((X_positifs.shape[1]), dtype=bool)
+        bool_mask[self.categorical_features]= False
+        X_positifs_all_features = X_positifs.copy()
+        X_negatifs_all_features = X_negatifs.copy()
+        X_positifs = X_positifs_all_features[:,bool_mask] ## continuous features
+        X_negatifs = X_negatifs_all_features[:,bool_mask] ## continuous features
+        X_positifs_categorical = X_positifs_all_features[:,~bool_mask]
+        X_negatifs_categorical = X_negatifs_all_features[:,~bool_mask]
+        X_positifs = X_positifs.astype(float)
+
+        n_minoritaire = X_positifs.shape[0]
+        dimension = X_positifs.shape[1] ## features continues seulement
+
+        self.Classifier.fit(X_positifs,X_positifs_categorical)
+        ######### CONTINUOUS ################
+        neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
+        neigh.fit(X_positifs)
+        neighbor_by_index = neigh.kneighbors(
+            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
+        )
+
+        n_synthetic_sample = n_final_sample - n_minoritaire
+        new_samples = np.zeros((n_synthetic_sample, dimension))
+        new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
+        np.random.seed(self.random_state)
+        for i in range(n_synthetic_sample):
+            indice = np.random.randint(n_minoritaire)
+            indices_neigh = [
+                0
+            ]  ## the central point is selected for the expectation and covariance matrix
+            indices_neigh.extend(
+                random.sample(range(1, self.K + 1), self.n_points)
+            )  # The nearrest neighbor selected for the estimation
+            indice_neighbors = neighbor_by_index[indice][indices_neigh]
+            mu = (1 / self.n_points) * X_positifs[indice_neighbors, :].sum(axis=0)
+            sigma = (
+                self.llambda
+                * (1 / self.n_points)
+                * (X_positifs[indice_neighbors, :] - mu).T.dot(
+                    (X_positifs[indice_neighbors, :] - mu)
+                )
+            )
+            new_observation = np.random.multivariate_normal(
+                mu, sigma, check_valid="raise"
+            ).T
+            new_samples[i, :] = new_observation
+        ############### CATEGORICAL ##################
+            new_pred = self.Classifier.predict(new_observation.reshape(1, -1))
+            new_samples_cat[i, :] = new_pred
+        np.random.seed()
+        
+        ##### END ######
+        new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
+        new_samples_final[:,bool_mask] = new_samples
+        new_samples_final[:,~bool_mask] = new_samples_cat
+        #new_samples_final = np.concatenate((new_samples,new_samples_cat), axis=1)
+        
+        X_positifs_final = np.zeros((len(X_positifs),X_positifs_all_features.shape[1]),dtype=object)
+        X_positifs_final[:,bool_mask] = X_positifs
+        X_positifs_final[:,~bool_mask] = X_positifs_categorical
+        
+        X_negatifs_final = np.zeros((len(X_negatifs),X_positifs_all_features.shape[1]),dtype=object)
+        X_negatifs_final[:,bool_mask] = X_negatifs
+        X_negatifs_final[:,~bool_mask] = X_negatifs_categorical
+        
+        oversampled_X = np.concatenate((X_negatifs_final, X_positifs_final, new_samples_final), axis=0)
+        oversampled_y = np.hstack(
+            (np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1))
+        )
+
+        return oversampled_X, oversampled_y
+
+
 
 # Our New Proposed SMOTE Method
 from sklearn.utils import check_array, _safe_indexing, sparsefuncs_fast, check_random_state
@@ -659,6 +799,8 @@ class SMOTE_ENC():
         return X, encoded_dict_list, nan_dict
 
     def fit_resample(self, X, y):
+        X = pd.DataFrame(X) ## ABD
+        y = pd.DataFrame({"target":y}) ##ABD
         X_cat_encoded, encoded_dict_list, nan_dict = self.cat_corr_pandas(X.iloc[:,np.asarray(self.categorical_features)], y, target_column='target', target_value=1)
 #         X_cat_encoded = np.ravel(np.array(X_cat_encoded))
         X_cat_encoded = np.array(X_cat_encoded)
