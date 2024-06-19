@@ -148,7 +148,7 @@ class MGS(BaseOverSampler):
                 random.sample(range(1, self.K + 1), self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.n_points) * X_positifs[indice_neighbors, :].sum(axis=0)
+            mu = (1 / self.K+1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
                 * (1 / self.n_points)
@@ -371,7 +371,7 @@ class MGS_NC(BaseOverSampler):
                 random.sample(range(1, self.K + 1), self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.n_points) * X_positifs[indice_neighbors, :].sum(axis=0)
+            mu = (1 / self.K +1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
                 * (1 / self.n_points)
@@ -513,7 +513,7 @@ class MGS_cat(BaseOverSampler):
                 random.sample(range(1, self.K + 1), self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.n_points) * X_positifs[indice_neighbors, :].sum(axis=0)
+            mu = (1 / self.K+1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
                 * (1 / self.n_points)
@@ -527,16 +527,131 @@ class MGS_cat(BaseOverSampler):
             new_samples[i, :] = new_observation
         ############### CATEGORICAL ##################
             if self.version==1: ## on prend le plus commun
-                #most_common,most_common_count = stats.mode(X_positifs_categorical[indice_neighbors,:],axis=0)
-                for cat_feature in range(len(self.categorical_features)):
-                    #most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,cat_feature])]
+                for cat_feature in range(len(self.categorical_features)):                    
                     most_common = Counter(X_positifs_categorical[indice_neighbors,cat_feature]).most_common(1)[0][0]
                     new_samples_cat[i, cat_feature] = most_common
             elif self.version==2: ## un des plus proches voisin au hasard
-                #rng = np.random.default_rng()
-                #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)
+        np.random.seed() 
+        
+        ##### END ######
+        new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
+        new_samples_final[:,bool_mask] = new_samples
+        new_samples_final[:,~bool_mask] = new_samples_cat
+        
+        X_positifs_final = np.zeros((len(X_positifs),X_positifs_all_features.shape[1]),dtype=object)
+        X_positifs_final[:,bool_mask] = X_positifs
+        X_positifs_final[:,~bool_mask] = X_positifs_categorical
+        
+        X_negatifs_final = np.zeros((len(X_negatifs),X_positifs_all_features.shape[1]),dtype=object)
+        X_negatifs_final[:,bool_mask] = X_negatifs
+        X_negatifs_final[:,~bool_mask] = X_negatifs_categorical
+        
+        oversampled_X = np.concatenate((X_negatifs_final, X_positifs_final, new_samples_final), axis=0)
+        oversampled_y = np.hstack(
+            (np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1))
+        )
+
+        return oversampled_X, oversampled_y
+
+class SMOTE_cat(BaseOverSampler):
+    """
+    SMOTE distance-without-discrete-features iteration
+    """
+
+    def __init__(
+        self, K,categorical_features,version,sampling_strategy="auto", random_state=None
+    ):
+        """
+        K : int.
+        """
+        super().__init__(sampling_strategy=sampling_strategy)
+        self.K = K
+        self.categorical_features = categorical_features
+        self.version=version
+        self.random_state = random_state 
+        
+    def _check_X_y(self, X, y):
+        """Overwrite the checking to let pass some string for categorical
+        features.
+        """
+        y, binarize_y = check_target_type(y, indicate_one_vs_all=True)
+        #X = _check_X(X)
+        #self._check_n_features(X, reset=True)
+        #self._check_feature_names(X, reset=True)
+        return X, y, binarize_y
+
+    def _validate_estimator(self):
+        super()._validate_estimator()
+        if self.categorical_features_.size == 0:
+            raise ValueError(
+                "SMOTE_cat is not designed to work only with numerical "
+                "features. It requires some categorical features."
+            )
+
+    def _fit_resample(self, X, y=None, n_final_sample=None):
+        """
+        if y=None, all points are considered positive, and oversampling on all X
+        if n_final_sample=None, objective is balanced data.
+        """
+        
+        if y is None:
+            X_positifs = X
+            X_negatifs = np.ones((0, X.shape[1]))
+            assert (
+                n_final_sample is not None
+            ), "You need to provide a number of final samples."
+        else:
+            X_positifs = X[y == 1]
+            X_negatifs = X[y == 0]
+            if n_final_sample is None:
+                n_final_sample = (y == 0).sum()
+        if len(self.categorical_features) == X.shape[1]:
+            raise ValueError(
+                "SMOTE_cat is not designed to work only with categorical "
+                "features. It requires some numerical features."
+            )
+                
+        bool_mask = np.ones((X_positifs.shape[1]), dtype=bool)
+        bool_mask[self.categorical_features]= False
+        X_positifs_all_features = X_positifs.copy()
+        X_negatifs_all_features = X_negatifs.copy()
+        X_positifs = X_positifs_all_features[:,bool_mask] ## continuous features
+        X_negatifs = X_negatifs_all_features[:,bool_mask] ## continuous features
+        X_positifs_categorical = X_positifs_all_features[:,~bool_mask]
+        X_negatifs_categorical = X_negatifs_all_features[:,~bool_mask]
+        X_positifs = X_positifs.astype(float)
+
+        n_minoritaire = X_positifs.shape[0]
+        dimension = X_positifs.shape[1] ## features continues seulement
+        
+        ######### CONTINUOUS ################
+        neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
+        neigh.fit(X_positifs)
+        neighbor_by_index = neigh.kneighbors(
+            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
+        )
+
+        n_synthetic_sample = n_final_sample - n_minoritaire
+        new_samples = np.zeros((n_synthetic_sample, dimension))
+        new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
+        np.random.seed(self.random_state)
+        for i in range(n_synthetic_sample):
+            indice = np.random.randint(n_minoritaire) #individu centrale qui sera choisi
+            indice_neigh = np.random.randint(1,self.K+1)# Sélection voisin parmi les K. On exclu 0 car c indice lui-même
+            indice_neighbor = neighbor_by_index[indice][indice_neigh]
+            w = np.random.uniform(0,1) #facteur alpha de la première difference
+            new_samples[i,:] = X_positifs[indice] + w * (X_positifs[indice_neighbor] - X_positifs[indice])
+        ############### CATEGORICAL ##################
+            indice_neighbors_with_0 = np.arange(start=0,stop=self.K + 1,dtype=int)
+            if self.version==1: ## on prend le plus commun
+                for cat_feature in range(len(self.categorical_features)):
+                    most_common = Counter(X_positifs_categorical[indice_neighbors_with_0,cat_feature]).most_common(1)[0][0]
+                    new_samples_cat[i, cat_feature] = most_common
+            elif self.version==2: ## un des plus proches voisin au hasard
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_with_0,cat_feature],replace=False)
         np.random.seed() 
         
         ##### END ######
@@ -559,6 +674,7 @@ class MGS_cat(BaseOverSampler):
         )
 
         return oversampled_X, oversampled_y
+
     
 class MultiOutPutClassifier_and_MGS(BaseOverSampler):
     """
@@ -654,7 +770,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
                 random.sample(range(1, self.K + 1), self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.n_points) * X_positifs[indice_neighbors, :].sum(axis=0)
+            mu = (1 / self.K+1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
                 * (1 / self.n_points)
