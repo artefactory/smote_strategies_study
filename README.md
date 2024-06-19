@@ -48,7 +48,7 @@ The data sets of used for our article should be dowloaded  inside the *data/exte
 Table 2 from  [the paper](https://arxiv.org/pdf/2402.03819.pdf) :
 
 
-| Strategy                                  | None    | CW               | RUS              | ROS              | NearMiss1    | BS1     | BS2     |  SMOTE     | CV SMOTE              | MGS  ($d+1$)               |
+| Strategy                                  | None    | CW               | RUS              | ROS              | NM1    | BS1     | BS2     |  SMOTE     | CV SMOTE              | MGS  ($d+1$)               |
 |-------------------------------------------|---------|------------------|------------------|------------------|---------|---------|---------|------------------|------------------|---------------------|
 |  CreditCard ($0.2\%$)          | $0.966$ | $0.967$          | $\mathbf{0.970}$ | $0.935$          | $0.892$ | $0.949$ | $0.944$ | $0.947$          | $0.954$          | $0.952$             |
 |  Abalone ($1\%$)               | $0.764$ | $0.748$          | $0.735$          | $0.722$          | $0.656$ | $0.744$ | $0.753$ | $0.741$          | $0.791$          | $\mathbf{0.802}$    |
