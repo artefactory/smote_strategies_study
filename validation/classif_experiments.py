@@ -72,10 +72,8 @@ def subsample_to_ratio_indices(
     )  ## build the directory if it does not exists
     if has_previous_under_sampling:
         X_under, y_under = X[previous_under_sampling, :], y[previous_under_sampling]
-        X_positifs = X_under[np.array(y_under, dtype=bool)]  # to remove ?
-        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)]  # english
+        X_negatifs = X_under[np.array(1 - y_under, dtype=bool)]  
     else:
-        X_positifs = X[np.array(y, dtype=bool)] # to remove ?
         X_negatifs = X[np.array(1 - y, dtype=bool)]
 
     np.random.seed(seed=seed_sub)
