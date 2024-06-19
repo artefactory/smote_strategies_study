@@ -173,7 +173,7 @@ class MGS(BaseOverSampler):
 
 class MGS2(BaseOverSampler):
     """
-    MGS2 : Faster version of MGS using SVD
+    MGS2 : Faster version of MGS using SVD decomposition
     """
 
     def __init__(
@@ -262,17 +262,9 @@ class NoSampling(object):
 ##########################################
 ######## CATEGORICAL #####################
 #########################################
-#from scipy import stats
-#from imblearn.over_sampling.base import BaseOverSampler
-#from sklearn.neighbors import NearestNeighbors
-#import random
-#from sklearn.preprocessing import OneHotEncoder
-#import math
-#from imblearn.utils import check_target_type
-#from collections import Counter
 class MGS_NC(BaseOverSampler):
     """
-    MGS
+    MGS NC strategy 
     """
 
     def __init__(
@@ -326,7 +318,7 @@ class MGS_NC(BaseOverSampler):
                 
         if len(self.categorical_features) == X.shape[1]:
             raise ValueError(
-                "SMOTE-NC is not designed to work only with categorical "
+                "MGS-NC is not designed to work only with categorical "
                 "features. It requires some numerical features."
             )
                 
@@ -384,15 +376,11 @@ class MGS_NC(BaseOverSampler):
             ).T
             new_samples[i, :] = new_observation
         ############### CATEGORICAL ##################
-            if self.version==1: ## on prend le plus commun
-                #most_common,most_common_count = stats.mode(X_positifs_categorical[indice_neighbors,:],axis=0)
+            if self.version==1: ## the most common occurence is chosen per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
-                    #most_common = [Counter(col).most_common(1)[0][0] for col in zip(*X_positifs_categorical[indice_neighbors,cat_feature])]
                     most_common = Counter(X_positifs_categorical[indice_neighbors,cat_feature]).most_common(1)[0][0]
                     new_samples_cat[i, cat_feature] = most_common
-            elif self.version==2: ## un des plus proches voisin au hasard
-                #rng = np.random.default_rng()
-                #new_samples_cat[i, :] = rng.choice(X_positifs_categorical[indice_neighbors,:],replace=False)
+            elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)     
         np.random.seed()
@@ -401,7 +389,6 @@ class MGS_NC(BaseOverSampler):
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
         new_samples_final[:,bool_mask] = new_samples
         new_samples_final[:,~bool_mask] = new_samples_cat
-        #new_samples_final = np.concatenate((new_samples,new_samples_cat), axis=1)
         
         X_positifs_final = np.zeros((len(X_positifs),X_positifs_all_features.shape[1]),dtype=object)
         X_positifs_final[:,bool_mask] = X_positifs
@@ -422,7 +409,7 @@ class MGS_NC(BaseOverSampler):
 
 class MGS_cat(BaseOverSampler):
     """
-    MGS
+    MGS NC distance-without-discrete-features 
     """
 
     def __init__(
@@ -444,16 +431,13 @@ class MGS_cat(BaseOverSampler):
         features.
         """
         y, binarize_y = check_target_type(y, indicate_one_vs_all=True)
-        #X = _check_X(X)
-        #self._check_n_features(X, reset=True)
-        #self._check_feature_names(X, reset=True)
         return X, y, binarize_y
 
     def _validate_estimator(self):
         super()._validate_estimator()
         if self.categorical_features_.size == 0:
             raise ValueError(
-                "SMOTE-NC is not designed to work only with numerical "
+                "MGS_cat is not designed to work only with numerical "
                 "features. It requires some categorical features."
             )
 
@@ -526,11 +510,11 @@ class MGS_cat(BaseOverSampler):
             ).T
             new_samples[i, :] = new_observation
         ############### CATEGORICAL ##################
-            if self.version==1: ## on prend le plus commun
+            if self.version==1: ## the most common occurence is chosen per categorical feature
                 for cat_feature in range(len(self.categorical_features)):                    
                     most_common = Counter(X_positifs_categorical[indice_neighbors,cat_feature]).most_common(1)[0][0]
                     new_samples_cat[i, cat_feature] = most_common
-            elif self.version==2: ## un des plus proches voisin au hasard
+            elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)
         np.random.seed() 
@@ -557,7 +541,7 @@ class MGS_cat(BaseOverSampler):
 
 class SMOTE_cat(BaseOverSampler):
     """
-    SMOTE distance-without-discrete-features iteration
+    SMOTE NC  distance-without-discrete-features 
     """
 
     def __init__(
@@ -577,9 +561,6 @@ class SMOTE_cat(BaseOverSampler):
         features.
         """
         y, binarize_y = check_target_type(y, indicate_one_vs_all=True)
-        #X = _check_X(X)
-        #self._check_n_features(X, reset=True)
-        #self._check_feature_names(X, reset=True)
         return X, y, binarize_y
 
     def _validate_estimator(self):
@@ -645,11 +626,11 @@ class SMOTE_cat(BaseOverSampler):
             new_samples[i,:] = X_positifs[indice] + w * (X_positifs[indice_neighbor] - X_positifs[indice])
         ############### CATEGORICAL ##################
             indice_neighbors_with_0 = np.arange(start=0,stop=self.K + 1,dtype=int)
-            if self.version==1: ## on prend le plus commun
+            if self.version==1:  ## the most common occurence is chosen per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     most_common = Counter(X_positifs_categorical[indice_neighbors_with_0,cat_feature]).most_common(1)[0][0]
                     new_samples_cat[i, cat_feature] = most_common
-            elif self.version==2: ## un des plus proches voisin au hasard
+            elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_with_0,cat_feature],replace=False)
         np.random.seed() 
@@ -658,8 +639,7 @@ class SMOTE_cat(BaseOverSampler):
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
         new_samples_final[:,bool_mask] = new_samples
         new_samples_final[:,~bool_mask] = new_samples_cat
-        #new_samples_final = np.concatenate((new_samples,new_samples_cat), axis=1)
-        
+
         X_positifs_final = np.zeros((len(X_positifs),X_positifs_all_features.shape[1]),dtype=object)
         X_positifs_final[:,bool_mask] = X_positifs
         X_positifs_final[:,~bool_mask] = X_positifs_categorical
@@ -810,7 +790,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
 
 
 
-# Our New Proposed SMOTE Method
+# SMOTE ENC from authors :
 from sklearn.utils import check_array, _safe_indexing, sparsefuncs_fast, check_random_state
 from scipy import stats
 from numbers import Integral
