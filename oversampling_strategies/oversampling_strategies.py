@@ -792,7 +792,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
 
 # SMOTE ENC from authors :
 from sklearn.utils import check_array, _safe_indexing, sparsefuncs_fast, check_random_state
-from scipy import stats
+#from scipy import stats
 from numbers import Integral
 from scipy import sparse
 import pandas as pd
