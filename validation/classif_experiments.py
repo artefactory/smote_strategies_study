@@ -4,12 +4,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import RocCurveDisplay, roc_curve
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.utils import shuffle
 from sklearn.metrics import auc
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+
+from sklearn.metrics import (roc_curve,auc,precision_recall_curve,roc_auc_score)
+from scipy import interpolate
 
 
 def proba_to_label(y_pred_probas, treshold=0.5):  # apply_threshold ?
@@ -543,3 +545,100 @@ def plot_roc_curves(output_dir, filename):
     plt.savefig(os.path.join(output_dir, "roc_curves_" + filename + ".png"))  # idea
     plt.legend()
     plt.show()
+
+def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=False,show_auc_curves=True,to_show=True):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : str
+        path direcory
+    name_file : str
+        standard names of the .npy files inside output_dir
+    n_iter :  int
+        number of file to be read by the function
+    stategies_to_show : list of str or None (default value)
+        When set to None, show all the strategies seen in each file. When set to a list of str, read only the specified startegies
+    show_pr : bool
+        Show PR curves by default and ROC curves otherwise
+    """
+    filename_0 = start_filename + str(0) +'.npy'
+    if stategies_to_show is None :
+        stategies_to_show = np.load(
+            os.path.join(output_dir, "name_strats" + filename_0)
+        ).tolist()
+        stategies_to_show.remove('fold') # remove fold column which is not a strategy
+        stategies_to_show.remove('y_true') # remove y_true column which is not a strategy
+    
+    list_names_oversamplings = np.load(
+        os.path.join(output_dir, "name_strats" + filename_0)
+    )
+    array_all_preds_strats_final = np.load(
+        os.path.join(output_dir, "preds_" + filename_0)
+    )
+    df_all = pd.DataFrame(
+        array_all_preds_strats_final, columns=list_names_oversamplings
+    )
+    
+    list_recall = np.arange(start=0,stop=1,step=0.01)
+    array_prec_interpolated = np.zeros((n_iter,len(list_recall),len(stategies_to_show)))
+    array_auc = np.zeros((n_iter,len(stategies_to_show)))
+    for i in range(n_iter):
+        filename = start_filename + str(i) +'.npy'    
+        for j,col in enumerate(stategies_to_show):
+    
+            array_prec_interpolated_folds = np.zeros((5,len(list_recall)))
+            list_auc_folds = []
+            for fold in range(5):
+                df = df_all[df_all["fold"] == fold]
+                y_true = df["y_true"].tolist()
+                pred_probas_col = df[col].tolist()
+    
+                if show_pr: ## PR Curves case
+                    prec, rec, _ = precision_recall_curve(y_true, pred_probas_col)
+                    pr_auc = auc(rec, prec)
+                    interpolation_func = interpolate.interp1d(rec, prec,kind='previous')
+                    prec_interpolated = interpolation_func(list_recall)
+                    array_prec_interpolated_folds[fold,:] = prec_interpolated
+                    list_auc_folds.append(pr_auc)
+                else :## ROC Curves case
+                    fpr, tpr, _ = roc_curve(y_true, pred_probas_col)
+                    #roc_auc = auc(fpr, tpr)
+                    roc_auc = roc_auc_score(y_true, pred_probas_col)
+                    interpolation_func = interpolate.interp1d(fpr, tpr,kind='previous')
+                    tpr_interpolated = interpolation_func(list_recall)  # In ROC case, the list_recall is equivalent to frp_list
+                    array_prec_interpolated_folds[fold,:] = tpr_interpolated
+                    list_auc_folds.append(roc_auc)
+                    
+            array_prec_interpolated[i,:,j]=array_prec_interpolated_folds.mean(axis=0) ## the mean interpolated over the 5 fold are averaged
+            array_auc[i,j] = np.mean(list_auc_folds)
+    
+    mean_final_prec = array_prec_interpolated.mean(axis=0) ## the interpolated precisions over the n_iter ietartions are averaged by strategy
+    std_final_prec = array_prec_interpolated.std(axis=0)
+    
+    
+    ########### Plotting curves ##############
+    plt.figure(figsize=(10,6))
+    for h,col in enumerate(stategies_to_show):
+        if show_auc_curves:
+            pr_auc_col = auc(list_recall,mean_final_prec[:,h])
+        else:
+            pr_auc_col = array_auc[:,h].mean()
+        lab_col = col + ' AUC='+ str(round(pr_auc_col,3))
+        plt.step(list_recall,mean_final_prec[:,h], label=lab_col)
+        plt.fill_between(list_recall, mean_final_prec[:,h] + std_final_prec[:,h],
+                         mean_final_prec[:,h] - std_final_prec[:,h], alpha=0.5,step='pre') #color='grey'
+    
+    if show_pr:
+        plt.legend(loc='best', fontsize='small')
+        plt.title("PR Curves", weight="bold", fontsize=15)
+        plt.xlabel("Recall", fontsize=12)
+        plt.ylabel("Precision", fontsize=12)
+    else:
+        plt.legend(loc='lower left', fontsize='small')
+        plt.title("ROC Curves", weight="bold", fontsize=15)
+        plt.xlabel("False Positive Rate (FPR)", fontsize=12)
+        plt.ylabel("True Positive Rate (TPR)", fontsize=12)
+        
+    if to_show:
+        plt.show()
