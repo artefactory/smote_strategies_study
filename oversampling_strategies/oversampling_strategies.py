@@ -658,7 +658,7 @@ class SMOTE_cat(BaseOverSampler):
     
 class MultiOutPutClassifier_and_MGS(BaseOverSampler):
     """
-    MGS
+    MultiOutPutClassifier and MGS
     """
 
     def __init__(

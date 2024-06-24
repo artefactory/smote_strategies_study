@@ -511,42 +511,9 @@ def depth_func_linspace(min_value,max_value,size=10,add_border=False):
     list_depth.extend(border_array)
     return list(dict.fromkeys(list_depth))
 
-def plot_roc_curves(output_dir, filename):
-    """_summary_
 
-    Parameters
-    ----------
-    output_dir : _type_
-        _description_
-    name_file : _type_
-        _description_
-    """
-    list_names_oversamplings = np.load(
-        os.path.join(output_dir, "name_strats" + filename)
-    )
-    array_all_preds_strats_final = np.load(
-        os.path.join(output_dir, "preds_" + filename)
-    )
-    df_all = pd.DataFrame(
-        array_all_preds_strats_final, columns=list_names_oversamplings
-    )
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-
-    for col in df_all.drop(["y_true", "fold"], axis=1).columns:
-        fpr, tpr, _ = roc_curve(df_all[["y_true"]].values, df_all[[col]].values)
-        roc_auc = auc(fpr, tpr)
-        RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot( 
-            label=col, ax=ax
-        ) 
-
-    ax.set_title("Receiver Operating Characteristic (ROC) curves")
-    ax.grid(linestyle="--")
-    plt.savefig(os.path.join(output_dir, "roc_curves_" + filename + ".png"))  # idea
-    plt.legend()
-    plt.show()
-
-def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=False,show_auc_curves=True,to_show=True):
+def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=False,show_auc_curves=True,to_show=True,value_alpha=0.2):
     """_summary_
 
     Parameters
@@ -573,18 +540,19 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
     list_names_oversamplings = np.load(
         os.path.join(output_dir, "name_strats" + filename_0)
     )
-    array_all_preds_strats_final = np.load(
-        os.path.join(output_dir, "preds_" + filename_0)
-    )
-    df_all = pd.DataFrame(
-        array_all_preds_strats_final, columns=list_names_oversamplings
-    )
     
     list_recall = np.arange(start=0,stop=1,step=0.01)
     array_prec_interpolated = np.zeros((n_iter,len(list_recall),len(stategies_to_show)))
     array_auc = np.zeros((n_iter,len(stategies_to_show)))
     for i in range(n_iter):
-        filename = start_filename + str(i) +'.npy'    
+        filename = start_filename + str(i) +'.npy'
+        array_all_preds_strats_final = np.load(
+            os.path.join(output_dir, "preds_" + filename)
+        )
+        df_all = pd.DataFrame(
+            array_all_preds_strats_final, columns=list_names_oversamplings
+        )
+            
         for j,col in enumerate(stategies_to_show):
     
             array_prec_interpolated_folds = np.zeros((5,len(list_recall)))
@@ -612,13 +580,13 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
                     
             array_prec_interpolated[i,:,j]=array_prec_interpolated_folds.mean(axis=0) ## the mean interpolated over the 5 fold are averaged
             array_auc[i,j] = np.mean(list_auc_folds)
-    
     mean_final_prec = array_prec_interpolated.mean(axis=0) ## the interpolated precisions over the n_iter ietartions are averaged by strategy
     std_final_prec = array_prec_interpolated.std(axis=0)
     
     
     ########### Plotting curves ##############
-    plt.figure(figsize=(10,6))
+    if to_show:
+        plt.figure(figsize=(10,6))
     for h,col in enumerate(stategies_to_show):
         if show_auc_curves:
             pr_auc_col = auc(list_recall,mean_final_prec[:,h])
@@ -627,7 +595,29 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
         lab_col = col + ' AUC='+ str(round(pr_auc_col,3))
         plt.step(list_recall,mean_final_prec[:,h], label=lab_col)
         plt.fill_between(list_recall, mean_final_prec[:,h] + std_final_prec[:,h],
-                         mean_final_prec[:,h] - std_final_prec[:,h], alpha=0.5,step='pre') #color='grey'
+                         mean_final_prec[:,h] - std_final_prec[:,h], alpha=value_alpha,step='pre') #color='grey'
+    if to_show:
+        if show_pr:
+            plt.legend(loc='best', fontsize='small')
+            plt.title("PR Curves", weight="bold", fontsize=15)
+            plt.xlabel("Recall", fontsize=12)
+            plt.ylabel("Precision", fontsize=12)
+        else:
+            plt.legend(loc='best', fontsize='small')
+            plt.title("ROC Curves", weight="bold", fontsize=15)
+            plt.xlabel("False Positive Rate (FPR)", fontsize=12)
+            plt.ylabel("True Positive Rate (TPR)", fontsize=12)
+        plt.show()
+
+
+def plot_curves_tuned(output_dir,start_filename,n_iter,list_name_strat,list_name_strat_inside_file,show_pr=False,
+                      show_auc_curves=True,value_alpha=0.2):
+    plt.figure(figsize=(10,6))
+    for i,strat in enumerate(list_name_strat):
+        curr_start_output_dir=os.path.join(output_dir,strat,'RF_100')
+        plot_curves(output_dir=curr_start_output_dir,start_filename=start_filename,n_iter=n_iter,
+                    stategies_to_show=[list_name_strat_inside_file[i]],show_pr=show_pr,show_auc_curves=show_auc_curves,
+                    to_show=False,value_alpha=value_alpha)
     
     if show_pr:
         plt.legend(loc='best', fontsize='small')
@@ -635,10 +625,8 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
         plt.xlabel("Recall", fontsize=12)
         plt.ylabel("Precision", fontsize=12)
     else:
-        plt.legend(loc='lower left', fontsize='small')
+        plt.legend(loc='best', fontsize='small')
         plt.title("ROC Curves", weight="bold", fontsize=15)
         plt.xlabel("False Positive Rate (FPR)", fontsize=12)
         plt.ylabel("True Positive Rate (TPR)", fontsize=12)
-        
-    if to_show:
-        plt.show()
+    plt.show()
