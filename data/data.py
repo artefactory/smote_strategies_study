@@ -79,14 +79,17 @@ def load_pima_data():
     Load PIMA diabates data set from data\dexternals folder
     The name of the file shoulde be : diabetes.csv
     """
-    df_diabete = pd.read_csv(
-        os.path.join(
-            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
-            "data",
-            "externals",
-            "diabetes.csv",
+    filename = "diabetes.csv"
+    try:
+        df_diabete = pd.read_csv(
+            os.path.join(DATA_DIR, filename)
         )
-    )
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"""Pima dataset not found. It must be downloaded and
+                                placed in the folder {DATA_DIR} under the name {filename}"""
+        )
+    
     X_pima = df_diabete.drop(["Outcome"], axis=1).to_numpy()
     y_pima = df_diabete[["Outcome"]].to_numpy().ravel()  # be consistent with X
     return X_pima, y_pima
@@ -97,15 +100,18 @@ def load_phoneme_data():
     Load Phoneme diabates data set from data\dexternals folder
     The name of the file shoulde be : phoneme.csv
     """
-    df_phoneme = pd.read_csv(
-        os.path.join(
-            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
-            "data",
-            "externals",
-            "phoneme.csv",
-        ),
+    filename = "phoneme.csv"
+    try:
+        df_phoneme = pd.read_csv(
+        os.path.join(DATA_DIR, filename),
         names=["Aa", " Ao", " Dcl", " Iy", " Sh", " Class"],
     )
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"""Pima dataset not found. It must be downloaded and
+                                placed in the folder {DATA_DIR} under the name {filename}"""
+        )
+    
     X_phoneme = df_phoneme.drop([" Class"], axis=1).to_numpy()
     y_phoneme = df_phoneme[[" Class"]].to_numpy().ravel()
     return X_phoneme, y_phoneme
