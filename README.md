@@ -62,3 +62,13 @@ This work was done through a partenership between **Artefact Research Center** a
 
 [![](data/logos/logo_arc.png)](https://www.artefact.com/data-consulting-transformation/artefact-research-center/)  |  [![]( data/logos//logo_LPSM.jpg)](https://www.lpsm.paris/)
 :-------------------------:|:-------------------------:
+
+If you find the code usefull, please consider citting us :
+```bib
+@article{sakho2024theoretical,
+  title={Theoretical and experimental study of SMOTE: limitations and comparisons of rebalancing strategies},
+  author={Sakho, Abdoulaye and Scornet, Erwan and Malherbe, Emmanuel},
+  journal={arXiv preprint arXiv:2402.03819},
+  year={2024}
+}
+```
