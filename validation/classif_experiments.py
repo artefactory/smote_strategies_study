@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
 
 from sklearn.metrics import (roc_curve,auc,precision_recall_curve,roc_auc_score)
+from sklearn.metrics import PrecisionRecallDisplay,RocCurveDisplay
 from scipy import interpolate
 
 
@@ -242,7 +243,7 @@ def run_eval(
             X_test = X_copy[test]
             if to_standard_scale:
                 scaler = StandardScaler()
-                if categorical_features==None:
+                if categorical_features is None:
                     X_train = scaler.fit_transform(X_train)
                 else:
                     bool_mask = np.ones((X_train.shape[1]), dtype=bool)
@@ -268,7 +269,7 @@ def run_eval(
                 list_tree_depth_name.append(oversampling_name)
 
             if to_standard_scale:
-                if categorical_features==None:
+                if categorical_features is None:
                     X_test = scaler.transform(X_test)
                 else:
                     bool_mask = np.ones((X_test.shape[1]), dtype=bool)
@@ -541,7 +542,10 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
         os.path.join(output_dir, "name_strats" + filename_0)
     )
     
-    list_recall = np.arange(start=0,stop=1,step=0.01)
+    list_fpr = np.arange(start=0,stop=1.01,step=0.01)
+    list_recall = np.arange(start=0,stop=1.01,step=0.01)
+    #list_prec = np.arange(start=0,stop=1.01,step=0.01)
+    #list_recall = list_recall[::-1]
     array_prec_interpolated = np.zeros((n_iter,len(list_recall),len(stategies_to_show)))
     array_auc = np.zeros((n_iter,len(stategies_to_show)))
     for i in range(n_iter):
@@ -563,22 +567,53 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
                 pred_probas_col = df[col].tolist()
     
                 if show_pr: ## PR Curves case
-                    prec, rec, _ = precision_recall_curve(y_true, pred_probas_col)
+                    prec, rec, tresh = precision_recall_curve(y_true, pred_probas_col)
                     pr_auc = auc(rec, prec)
-                    interpolation_func = interpolate.interp1d(rec, prec,kind='previous')
+                    #interpolation_func = interpolate.interp1d(rec,prec ,kind='previous')
+                    #prec_interpolated = interpolation_func(list_recall)
+                    #array_prec_interpolated_folds[fold,:] = prec_interpolated
+                    
+                    
+                    #interpolation_func = interpolate.interp1d(rec, prec ,kind='previous')
+                    #prec_interpolated = interpolation_func(np.flip(list_recall))
+                    interpolation_func = interpolate.interp1d(np.flip(rec), np.flip(prec) ,kind='linear')
                     prec_interpolated = interpolation_func(list_recall)
+                    #prec_interpolated = np.interp(x=list_recall,xp=np.flip(rec),fp=np.flip(prec))
+                    #array_prec_interpolated_folds[fold,:] = np.flip(prec_interpolated)
                     array_prec_interpolated_folds[fold,:] = prec_interpolated
                     list_auc_folds.append(pr_auc)
+                    #print('**********')
+                    #print('rec : ', rec)
+                    #print('tresh : ', tresh)
+                    #print('prec : ', prec)
+                    #print('prec_interpolated : ', prec_interpolated)
+                    #print('flip prec_interpolated : ', np.flip(prec_interpolated))
+                    #print('list recall flipped : ', np.flip(list_recall)) 
+                    #disp = PrecisionRecallDisplay(precision=prec, recall=rec)
+                    #disp.plot()
+                    #dispp = PrecisionRecallDisplay(precision=prec_interpolated, recall=np.flip(list_recall))
+                    #dispp.plot()
+                    #plt.show()
                 else :## ROC Curves case
                     fpr, tpr, _ = roc_curve(y_true, pred_probas_col)
-                    #roc_auc = auc(fpr, tpr)
-                    roc_auc = roc_auc_score(y_true, pred_probas_col)
-                    interpolation_func = interpolate.interp1d(fpr, tpr,kind='previous')
-                    tpr_interpolated = interpolation_func(list_recall)  # In ROC case, the list_recall is equivalent to frp_list
+                    interpolation_func = interpolate.interp1d(fpr, tpr,kind='linear')
+                    tpr_interpolated = interpolation_func(list_fpr)  
+                    #tpr_interpolated = np.interp(x=list_fpr,xp=fpr,fp=tpr)
                     array_prec_interpolated_folds[fold,:] = tpr_interpolated
+                    roc_auc = roc_auc_score(y_true, pred_probas_col)
                     list_auc_folds.append(roc_auc)
+                    #print('**********')
+                    #print('fpr : ',fpr)
+                    #print('tpr : ', tpr)
+                    #print('tpr_interpolated : ', tpr_interpolated)
+                    #disp = RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc,estimator_name='example estimator')
+                    #disp.plot()
+                    #plt.show()
                     
             array_prec_interpolated[i,:,j]=array_prec_interpolated_folds.mean(axis=0) ## the mean interpolated over the 5 fold are averaged
+            #print('mean', array_prec_interpolated_folds.mean(axis=0))
+            #print('_____')
+            #print(array_prec_interpolated_folds)
             array_auc[i,j] = np.mean(list_auc_folds)
     mean_final_prec = array_prec_interpolated.mean(axis=0) ## the interpolated precisions over the n_iter ietartions are averaged by strategy
     std_final_prec = array_prec_interpolated.std(axis=0)
@@ -588,14 +623,29 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
     if to_show:
         plt.figure(figsize=(10,6))
     for h,col in enumerate(stategies_to_show):
-        if show_auc_curves:
-            pr_auc_col = auc(list_recall,mean_final_prec[:,h])
+        if show_pr:
+            list_to_show = list_recall
+            if show_auc_curves :
+                pr_auc_col = auc(np.flip(list_to_show),mean_final_prec[:,h])
+            else :
+                pr_auc_col = array_auc[:,h].mean()
+            lab_col = col + ' AUC='+ str(round(pr_auc_col,3))
+            plt.step(list_to_show, mean_final_prec[:,h], label=lab_col)
+            plt.fill_between(list_to_show, mean_final_prec[:,h] + std_final_prec[:,h],
+                             mean_final_prec[:,h] - std_final_prec[:,h], alpha=value_alpha,step='pre') #color='grey'
         else:
-            pr_auc_col = array_auc[:,h].mean()
-        lab_col = col + ' AUC='+ str(round(pr_auc_col,3))
-        plt.step(list_recall,mean_final_prec[:,h], label=lab_col)
-        plt.fill_between(list_recall, mean_final_prec[:,h] + std_final_prec[:,h],
-                         mean_final_prec[:,h] - std_final_prec[:,h], alpha=value_alpha,step='pre') #color='grey'
+            list_to_show = list_fpr
+            #list_to_show = list_prec
+            if show_auc_curves :
+                pr_auc_col = auc(list_to_show,mean_final_prec[:,h])
+            else :
+                pr_auc_col = array_auc[:,h].mean()
+            lab_col = col + ' AUC='+ str(round(pr_auc_col,3))
+            plt.step(list_to_show,mean_final_prec[:,h],label=lab_col)
+            plt.fill_between(list_to_show, mean_final_prec[:,h] + std_final_prec[:,h],
+                             mean_final_prec[:,h] - std_final_prec[:,h], alpha=value_alpha,step='pre') #color='grey'
+        
+
     if to_show:
         if show_pr:
             plt.legend(loc='best', fontsize='small')
@@ -607,6 +657,8 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
             plt.title("ROC Curves", weight="bold", fontsize=15)
             plt.xlabel("False Positive Rate (FPR)", fontsize=12)
             plt.ylabel("True Positive Rate (TPR)", fontsize=12)
+        plt.xlim([-0.01, 1.01])
+        plt.ylim([-0.01, 1.01])
         plt.show()
 
 
