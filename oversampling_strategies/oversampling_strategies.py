@@ -68,7 +68,7 @@ class CVSmoteModel(object):
             scores = []
             for train, test in folds:
                 new_X, new_y = SMOTE(k_neighbors=k).fit_resample(X[train], y[train])
-                self.model.fit(new_X, new_y, sample_weight)
+                self.model.fit(X=new_X, y=new_y, sample_weight=sample_weight)
                 scores.append(
                     roc_auc_score(y[test], self.model.predict_proba(X[test])[:, 1])
                 )
@@ -76,7 +76,7 @@ class CVSmoteModel(object):
                 best_k = k
 
         new_X, new_y = SMOTE(k_neighbors=best_k).fit_resample(X, y)
-        self.model.fit(new_X, new_y, sample_weight)
+        self.model.fit(X=new_X, y=new_y, sample_weight=sample_weight)
         if hasattr(self.model, "estimators_"):
             self.estimators_ = self.model.estimators_
 
@@ -99,7 +99,7 @@ class MGS(BaseOverSampler):
     """
 
     def __init__(
-        self, K, n_points, llambda, sampling_strategy="auto", random_state=None
+        self, K, n_points=None, llambda=1.0, sampling_strategy="auto", random_state=None
     ):
         """
         llambda is a float.
@@ -107,7 +107,10 @@ class MGS(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.n_points = n_points
+        if n_points is None :
+            self.n_points = K
+        else:
+            self.n_points = n_points
         self.random_state = random_state  # Add ?
 
     def _fit_resample(self, X, y=None, n_final_sample=None):
@@ -151,7 +154,7 @@ class MGS(BaseOverSampler):
             mu = (1 / self.K+1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
-                * (1 / self.n_points)
+                * (1 / self.K+1)
                 * (X_positifs[indice_neighbors, :] - mu).T.dot(
                     (X_positifs[indice_neighbors, :] - mu)
                 )
@@ -218,10 +221,10 @@ class MGS2(BaseOverSampler):
 
         # computing mu and covariance at once for every minority class points
         all_neighbors = X_positifs[neighbors_by_index.flatten()]
-        mus = (1 / self.K) * all_neighbors.reshape(len(X_positifs), self.K + 1, dimension).sum(axis=1)
+        mus = (1 / (self.K+1)) * all_neighbors.reshape(len(X_positifs), self.K + 1, dimension).sum(axis=1)
         centered_X = X_positifs[neighbors_by_index.flatten()] - np.repeat(mus, self.K + 1, axis=0)
         centered_X = centered_X.reshape(len(X_positifs), self.K + 1, dimension)
-        covs = self.llambda * np.matmul(np.swapaxes(centered_X,1,2), centered_X) / self.K
+        covs = self.llambda * np.matmul(np.swapaxes(centered_X,1,2), centered_X) / (self.K+1)
         
         # spectral decomposition of all covariances
         eigen_values, eigen_vectors = np.linalg.eigh(covs) ## long
