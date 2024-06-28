@@ -42,13 +42,13 @@ The data sets of used for our article should be dowloaded  inside the *data/exte
 Table 2 from  [the paper](https://arxiv.org/pdf/2402.03819.pdf) :
 
 
-| Strategy                                  | None    | CW               | RUS              | ROS              | NM1    | BS1     | BS2     |  SMOTE     | CV SMOTE              | MGS  ($d+1$)               |
+| Strategy                                  | None    | CW               | RUS              | ROS              | NM1    | BS1     | BS2     |  SMOTE     | CV SMOTE              | MGS (d+1)               |
 |-------------------------------------------|---------|------------------|------------------|------------------|---------|---------|---------|------------------|------------------|---------------------|
 |  CreditCard (0.2\%)          | $0.966$ | $0.967$          | **0.970** | $0.935$          | $0.892$ | $0.949$ | $0.944$ | $0.947$          | $0.954$          | $0.952$             |
 |  Abalone (1\%)               | $0.764$ | $0.748$          | $0.735$          | $0.722$          | $0.656$ | $0.744$ | $0.753$ | $0.741$          | $0.791$          | **0.802**    |
 |  *Phoneme* (1\%)      | $0.897$ | $0.868$          | $0.868$          | $0.858$          | $0.698$ | $0.867$ | $0.869$ | $0.888$          | **0.924** | $0.915$             |
 |  *Yeast* (1\%)        | $0.925$ | $0.920$          | $0.938$          | $0.908$          | $0.716$ | $0.949$ | $0.954$ | **0.955** | $0.942$          | $0.945$             |
-|  Wine (4\%)                  | $0.928$ | $0.925$          | $0.915$          | $0.924$          | $0.682$ | $0.933$ | $0.927$ | $0.934$          | $0.938$          | **$0.941$**    |
+|  Wine (4\%)                  | $0.928$ | $0.925$          | $0.915$          | $0.924$          | $0.682$ | $0.933$ | $0.927$ | $0.934$          | $0.938$          | **0.941**    |
 |  *Pima* (20\%)        | $0.798$ | **0.808** | $0.799$          | $0.790$          | $0.777$ | $0.793$ | $0.788$ | $0.789$          | $0.787$          | $0.787$             |
 |  *Haberman* (10\%)    | $0.708$ | $0.709$          | $0.720$          | $0.704$          | $0.697$ | $0.723$ | $0.721$ | $0.719$          | $0.742$          | **0.744**    |
 |  *MagicTel* (20\%)    | $0.917$ | $0.921$          | $0.917$          | **0.922** | $0.649$ | $0.920$ | $0.905$ | $0.921$          | $0.919$          | $0.913$             |
@@ -60,7 +60,7 @@ Table 2 from  [the paper](https://arxiv.org/pdf/2402.03819.pdf) :
 This work was done through a partenership between **Artefact Research Center** and the **Laboratoire de Probabilités Statistiques et Modélisation** (LPSM) of Sorbonne University.
 
 
-[![](data/logos/logo_arc.png)](https://www.artefact.com/data-consulting-transformation/artefact-research-center/)  |  [![]( data/logos//logo_LPSM.jpg)](https://www.lpsm.paris/)
+[![Artefact](data/logos/logo_arc.png)](https://www.artefact.com/data-consulting-transformation/artefact-research-center/)  |  [![LPSM]( data/logos//logo_LPSM.jpg)](https://www.lpsm.paris/)
 :-------------------------:|:-------------------------:
 
 If you find the code usefull, please consider citting us :
