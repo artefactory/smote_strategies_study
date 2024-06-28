@@ -514,7 +514,7 @@ def depth_func_linspace(min_value,max_value,size=10,add_border=False):
 
 
 
-def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=False,show_auc_curves=True,to_show=True,value_alpha=0.2):
+def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=False,show_auc_curves=True,to_show=True,value_alpha=0.2,kind_interpolation = 'linear'):
     """_summary_
 
     Parameters
@@ -576,7 +576,7 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
                     
                     #interpolation_func = interpolate.interp1d(rec, prec ,kind='previous')
                     #prec_interpolated = interpolation_func(np.flip(list_recall))
-                    interpolation_func = interpolate.interp1d(np.flip(rec), np.flip(prec) ,kind='linear')
+                    interpolation_func = interpolate.interp1d(np.flip(rec), np.flip(prec) ,kind=kind_interpolation)
                     prec_interpolated = interpolation_func(list_recall)
                     #prec_interpolated = np.interp(x=list_recall,xp=np.flip(rec),fp=np.flip(prec))
                     #array_prec_interpolated_folds[fold,:] = np.flip(prec_interpolated)
@@ -596,7 +596,7 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
                     #plt.show()
                 else :## ROC Curves case
                     fpr, tpr, _ = roc_curve(y_true, pred_probas_col)
-                    interpolation_func = interpolate.interp1d(fpr, tpr,kind='linear')
+                    interpolation_func = interpolate.interp1d(fpr, tpr,kind=kind_interpolation)
                     tpr_interpolated = interpolation_func(list_fpr)  
                     #tpr_interpolated = np.interp(x=list_fpr,xp=fpr,fp=tpr)
                     array_prec_interpolated_folds[fold,:] = tpr_interpolated
@@ -663,13 +663,13 @@ def plot_curves(output_dir,start_filename,n_iter,stategies_to_show=None,show_pr=
 
 
 def plot_curves_tuned(output_dir,start_filename,n_iter,list_name_strat,list_name_strat_inside_file,show_pr=False,
-                      show_auc_curves=True,value_alpha=0.2):
+                      show_auc_curves=True,value_alpha=0.2,kind_interpolation='linear'):
     plt.figure(figsize=(10,6))
     for i,strat in enumerate(list_name_strat):
         curr_start_output_dir=os.path.join(output_dir,strat,'RF_100')
         plot_curves(output_dir=curr_start_output_dir,start_filename=start_filename,n_iter=n_iter,
                     stategies_to_show=[list_name_strat_inside_file[i]],show_pr=show_pr,show_auc_curves=show_auc_curves,
-                    to_show=False,value_alpha=value_alpha)
+                    to_show=False,value_alpha=value_alpha,kind_interpolation=kind_interpolation)
     
     if show_pr:
         plt.legend(loc='best', fontsize='small')
@@ -682,3 +682,10 @@ def plot_curves_tuned(output_dir,start_filename,n_iter,list_name_strat,list_name
         plt.xlabel("False Positive Rate (FPR)", fontsize=12)
         plt.ylabel("True Positive Rate (TPR)", fontsize=12)
     plt.show()
+
+
+from sklearn.metrics import (precision_recall_curve,auc)
+def pr_auc_custom(y_true, y_score):
+    precision, recall, tresh = precision_recall_curve(y_true, y_score)
+    res_auc = auc(recall,precision)
+    return res_auc
