@@ -59,7 +59,6 @@ Table 2 from  [the paper](https://arxiv.org/pdf/2402.03819.pdf) :
 
 This work was done through a partenership between **Artefact Research Center** and the **Laboratoire de Probabilités Statistiques et Modélisation** (LPSM) of Sorbonne University.
 
-
 [![Artefact](data/logos/logo_arc.png)](https://www.artefact.com/data-consulting-transformation/artefact-research-center/)  |  [![LPSM]( data/logos//logo_LPSM.jpg)](https://www.lpsm.paris/)
 :-------------------------:|:-------------------------:
 
