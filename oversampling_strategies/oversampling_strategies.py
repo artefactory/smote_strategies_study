@@ -111,7 +111,7 @@ class MGS(BaseOverSampler):
             self.n_points = K
         else:
             self.n_points = n_points
-        self.random_state = random_state  # Add ?
+        self.random_state = random_state
 
     def _fit_resample(self, X, y=None, n_final_sample=None):
         """
@@ -188,7 +188,7 @@ class MGS2(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.random_state = random_state  # Add ?
+        self.random_state = random_state  
 
     def _fit_resample(self, X, y=None, n_final_sample=None):
         """
@@ -262,6 +262,9 @@ class NoSampling(object):
         y is a numpy array of dimension (n,)
         """
         return X, y
+    
+
+
 ##########################################
 ######## CATEGORICAL #####################
 #########################################
@@ -271,7 +274,7 @@ class MGS_NC(BaseOverSampler):
     """
 
     def __init__(
-        self, K, n_points, llambda,categorical_features,version,sampling_strategy="auto", random_state=None
+        self, K, categorical_features,version,n_points=None, llambda=1.0,sampling_strategy="auto", random_state=None
     ):
         """
         llambda is a float.
@@ -279,7 +282,10 @@ class MGS_NC(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.n_points = n_points
+        if n_points is None :
+            self.n_points = K
+        else:
+            self.n_points = n_points
         self.categorical_features = categorical_features
         self.version=version
         self.random_state = random_state 
@@ -347,8 +353,8 @@ class MGS_NC(BaseOverSampler):
         # contributing to the Euclidean distance
         neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
         neigh.fit(X_positifs_all_features_enc)
-        neighbor_by_index = neigh.kneighbors(
-            X=X_positifs_all_features_enc, n_neighbors=self.K + 1, return_distance=False
+        neighbor_by_dist, neighbor_by_index = neigh.kneighbors(
+            X=X_positifs_all_features_enc, n_neighbors=self.K + 1, return_distance=True
         )
         
         n_synthetic_sample = n_final_sample - n_minoritaire
@@ -385,7 +391,19 @@ class MGS_NC(BaseOverSampler):
                     new_samples_cat[i, cat_feature] = most_common
             elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
-                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)     
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False) 
+            elif self.version==3: ## sampling of one of the nearest neighbors per categorical feature using dsitance
+                #### We take the nn of the central point. The latter is excluded
+                epsilon_weigths_sampling = 10e-6
+                indice_neighbors_without_0 = np.arange(start=1,stop=self.K + 1,dtype=int)
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_without_0,cat_feature],replace=False,
+                                                                      p=((1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)) / (1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)).sum() ))
+            else :
+                raise ValueError(
+                    "Selected version not allowed "
+                    "Please chose an existing version"
+                )
         np.random.seed()
         
         ##### END ######
@@ -416,7 +434,7 @@ class MGS_cat(BaseOverSampler):
     """
 
     def __init__(
-        self, K, n_points, llambda,categorical_features,version,sampling_strategy="auto", random_state=None
+        self, K,categorical_features,version,n_points=None, llambda=10,sampling_strategy="auto", random_state=None
     ):
         """
         llambda is a float.
@@ -424,7 +442,10 @@ class MGS_cat(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.n_points = n_points
+        if n_points is None :
+            self.n_points = K
+        else:
+            self.n_points = n_points
         self.categorical_features = categorical_features
         self.version=version
         self.random_state = random_state 
@@ -483,8 +504,8 @@ class MGS_cat(BaseOverSampler):
         ######### CONTINUOUS ################
         neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
         neigh.fit(X_positifs)
-        neighbor_by_index = neigh.kneighbors(
-            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
+        neighbor_by_dist,neighbor_by_index = neigh.kneighbors(
+            X=X_positifs, n_neighbors=self.K + 1, return_distance=True
         )
 
         n_synthetic_sample = n_final_sample - n_minoritaire
@@ -520,6 +541,18 @@ class MGS_cat(BaseOverSampler):
             elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors,cat_feature],replace=False)
+            elif self.version==3: ## sampling of one of the nearest neighbors per categorical feature using dsitance
+                #### We take the nn of the central point. The latter is excluded
+                epsilon_weigths_sampling = 10e-6
+                indice_neighbors_without_0 = np.arange(start=1,stop=self.K + 1,dtype=int)
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_without_0,cat_feature],replace=False,
+                                                                      p=((1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)) / (1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)).sum() ))
+            else :
+                raise ValueError(
+                    "Selected version not allowed "
+                    "Please chose an existing version"
+                )
         np.random.seed() 
         
         ##### END ######
@@ -613,8 +646,8 @@ class SMOTE_cat(BaseOverSampler):
         ######### CONTINUOUS ################
         neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
         neigh.fit(X_positifs)
-        neighbor_by_index = neigh.kneighbors(
-            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
+        neighbor_by_dist, neighbor_by_index = neigh.kneighbors(
+            X=X_positifs, n_neighbors=self.K + 1, return_distance=True
         )
 
         n_synthetic_sample = n_final_sample - n_minoritaire
@@ -636,6 +669,19 @@ class SMOTE_cat(BaseOverSampler):
             elif self.version==2: ## sampling of one of the nearest neighbors per categorical feature
                 for cat_feature in range(len(self.categorical_features)):
                     new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_with_0,cat_feature],replace=False)
+            elif self.version==3: ## sampling of one of the nearest neighbors per categorical feature using dsitance
+                #### We take the nn of the central point. The latter is excluded
+                epsilon_weigths_sampling = 10e-6
+                indice_neighbors_without_0 = np.arange(start=1,stop=self.K + 1,dtype=int)
+                for cat_feature in range(len(self.categorical_features)):
+                    new_samples_cat[i, cat_feature] = np.random.choice(X_positifs_categorical[indice_neighbors_without_0,cat_feature],replace=False,
+                                                                      p=( (1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)) / (1/(neighbor_by_dist[indice][indice_neighbors_without_0]+epsilon_weigths_sampling)).sum() ))
+            else :
+                raise ValueError(
+                    "Selected version not allowed "
+                    "Please chose an existing version"
+                )
+                
         np.random.seed() 
         
         ##### END ######
@@ -665,7 +711,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
     """
 
     def __init__(
-        self, K, n_points, llambda,categorical_features,Classifier,sampling_strategy="auto", random_state=None
+        self, K,categorical_features,Classifier,to_encode=False,n_points=None, llambda=1.0,sampling_strategy="auto", random_state=None
     ):
         """
         llambda is a float.
@@ -673,10 +719,14 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.n_points = n_points
+        if n_points is None :
+            self.n_points = K
+        else:
+            self.n_points = n_points
         self.categorical_features = categorical_features
         self.Classifier = Classifier
-        self.random_state = random_state  # Add ?
+        self.random_state = random_state
+        self.to_encode=to_encode
         
     def _check_X_y(self, X, y):
         """Overwrite the checking to let pass some string for categorical
@@ -732,7 +782,14 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
         n_minoritaire = X_positifs.shape[0]
         dimension = X_positifs.shape[1] ## features continues seulement
 
-        self.Classifier.fit(X_positifs,X_positifs_categorical)
+        np.random.seed(self.random_state)
+        if self.to_encode:
+            ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value",unknown_value=-1,dtype=int)
+            X_positifs_categorical_encoded = ord_encoder.fit_transform(X_positifs_categorical.astype(str)) 
+            ### Fit :
+            self.Classifier.fit(X_positifs,X_positifs_categorical_encoded) # learn on continuous features in order to predict categorical feature  
+        else:
+            self.Classifier.fit(X_positifs,X_positifs_categorical.astype(str)) # learn on continuous features in order to predict categorical features
         ######### CONTINUOUS ################
         neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
         neigh.fit(X_positifs)
@@ -743,7 +800,6 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
         n_synthetic_sample = n_final_sample - n_minoritaire
         new_samples = np.zeros((n_synthetic_sample, dimension))
         new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
-        np.random.seed(self.random_state)
         for i in range(n_synthetic_sample):
             indice = np.random.randint(n_minoritaire)
             indices_neigh = [
@@ -765,12 +821,13 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
                 mu, sigma, check_valid="raise"
             ).T
             new_samples[i, :] = new_observation
-        ############### CATEGORICAL ##################
+        ############### CATEGORICAL ################## 
             new_pred = self.Classifier.predict(new_observation.reshape(1, -1))
             new_samples_cat[i, :] = new_pred
         np.random.seed()
-        
         ##### END ######
+        if self.to_encode:
+            new_samples_cat = ord_encoder.inverse_transform(new_samples_cat.astype(int))
         new_samples_final = np.zeros((n_synthetic_sample,X_positifs_all_features.shape[1]),dtype=object)
         new_samples_final[:,bool_mask] = new_samples
         new_samples_final[:,~bool_mask] = new_samples_cat
@@ -994,3 +1051,15 @@ class SMOTE_ENC():
             X_resampled = X_resampled[:, indices_reordered]
         return X_resampled, y_resampled
 
+from sklearn.preprocessing import OrdinalEncoder
+class SMOTE_ENC_decoded(SMOTE_ENC):
+    def __init__(self, categorical_features):
+        super().__init__(categorical_features)
+        
+    def fit_resample(self, X, y):
+        ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value",unknown_value=-1,dtype=int)
+        X[:,self.categorical_features] = ord_encoder.fit_transform(X[:,self.categorical_features]) 
+        ### Sampling :
+        X_res, y_res = super().fit_resample(X,y)
+        X_res[:,self.categorical_features] = ord_encoder.inverse_transform(X_res[:,self.categorical_features].astype(int)) 
+        return X_res, y_res
