@@ -3,12 +3,12 @@
 Repository for [Do we need rebalancing strategies? A theoretical and empirical study around SMOTE and its variants](https://arxiv.org/pdf/2402.03819.pdf) paper.
 
 In praticular, you will find code to reproduce the paper experiments as well as an nice implementation of our *new* and *efficient* strategy for your projects.
-## Table of Contents
+## ⭐ Table of Contents
   - [Getting Started](#getting-started)
   - [Data sets](#data-sets)
   - [Acknowledgements](#acknowledgements)
 
-## Getting Started
+## ⭐ Getting Started
 
 If you want to reproduce our paper experiments:
   - the notebooks [here](notebooks/classif_experiments.ipynb) and [here](notebooks/distances_experiments.ipynb) reproduce the experiments
@@ -18,7 +18,7 @@ In order to use our MGS strategy:
   - this [notebook](notebooks/resampling_example.ipynb) illustrates how to use it
   - the strategy is implemented [here](./oversampling_strategies/)
 
-## Data sets
+## ⭐ Data sets
 
 The data sets of used for our article should be dowloaded  inside the *data/externals* folder. The data sets are available at the followings adresses :
 
@@ -53,7 +53,7 @@ Table 2 from  [the paper](https://arxiv.org/pdf/2402.03819.pdf) :
 |  *California* (1\%) | $0.887$ | $0.877$          | $0.880$          | $0.883$          | $0.630$ | $0.885$ | $0.874$ | $0.906$          | $0.916$          | **0.923**    |
 
 
-## Acknowledgements
+## ⭐ Acknowledgements
 
 This work was done through a partenership between **Artefact Research Center** and the **Laboratoire de Probabilités Statistiques et Modélisation** (LPSM) of Sorbonne University.
 
