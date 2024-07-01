@@ -3,8 +3,6 @@
 Repository for [Do we need rebalancing strategies? A theoretical and empirical study around SMOTE and its variants](https://arxiv.org/pdf/2402.03819.pdf) paper.
 
 In praticular, you will find code to reproduce the paper experiments as well as an nice implementation of our *new* and *efficient* strategy for your projects.
-
-
 ## Table of Contents
   - [Getting Started](#getting-started)
   - [Data sets](#data-sets)
@@ -62,7 +60,7 @@ This work was done through a partenership between **Artefact Research Center** a
 [![Artefact](data/logos/logo_arc.png)](https://www.artefact.com/data-consulting-transformation/artefact-research-center/)  |  [![LPSM]( data/logos//logo_LPSM.jpg)](https://www.lpsm.paris/)
 :-------------------------:|:-------------------------:
 
-If you find the code usefull, please consider citting us :
+If you find the code usefull, please consider citing us :
 ```bib
 @article{sakho2024theoretical,
   title={Theoretical and experimental study of SMOTE: limitations and comparisons of rebalancing strategies},
