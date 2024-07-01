@@ -469,3 +469,64 @@ def load_wine_data():
     y_wine = df_wine[['quality']].to_numpy().ravel()
     return X_wine,y_wine
 
+
+from ucimlrepo import fetch_ucirepo 
+def load_BankMarketing_data():
+    """
+    Load BankChurners data set from UCI Irvine.
+    """
+    # fetch dataset 
+    bank_marketing = fetch_ucirepo(id=222) 
+    # data (as pandas dataframes) 
+    X = bank_marketing.data.features 
+    y = bank_marketing.data.targets 
+
+    X.fillna('unknow',inplace=True) # fillna
+    y.replace({'y':{'yes':1,'no':0}},inplace=True)
+    X = X.to_numpy()
+    y = y.to_numpy().ravel()
+    return X, y
+
+
+def load_BankChurners_data():
+    """
+    Load BankChurners data set from data\dexternals folder
+    The name of the file shoulde be : BankChurners.csv
+    """
+    df_bankchurners = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "BankChurners.csv",
+        )
+    )
+    
+    X_bankChurners = df_bankchurners.drop(['CLIENTNUM','Attrition_Flag','Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1','Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2'],
+                                         axis=1).to_numpy()
+    y_bankChurners = df_bankchurners[["Attrition_Flag"]].replace({'Attrition_Flag':{'Existing Customer':0, 'Attrited Customer':1}}).to_numpy().ravel()
+    return X_bankChurners, y_bankChurners
+
+
+
+def load_TelcoChurn_data():
+    """
+    Load TelcoChurn data set from data\dexternals folder
+    The name of the file shoulde be : Telco-Customer-Churn.csv
+    """
+    df_telco_churn = pd.read_csv(
+        os.path.join(
+            os.path.abspath(os.path.join(os.getcwd(), os.pardir)),
+            "data",
+            "externals",
+            "Telco-Customer-Churn.csv",
+        )
+    )
+    df_telco_churn.replace({'TotalCharges':{' ':'0'}},inplace=True)
+    df_telco_churn[["TotalCharges"]] = df_telco_churn[["TotalCharges"]].astype(float)
+    
+    X_telco = df_telco_churn.drop(['customerID','Churn'],axis=1).to_numpy()
+    y_telco = df_telco_churn[["Churn"]].replace({'Churn':{'No':0, 'Yes':1}}).to_numpy().ravel()
+
+    return X_telco,y_telco
+
