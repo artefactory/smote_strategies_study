@@ -784,7 +784,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
 
         np.random.seed(self.random_state)
         if self.to_encode:
-            ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value",unknown_value=-1,dtype=int)
+            ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value",unknown_value=-1,dtype=float)
             X_positifs_categorical_encoded = ord_encoder.fit_transform(X_positifs_categorical.astype(str)) 
             ### Fit :
             self.Classifier.fit(X_positifs,X_positifs_categorical_encoded) # learn on continuous features in order to predict categorical feature  
@@ -799,7 +799,7 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
 
         n_synthetic_sample = n_final_sample - n_minoritaire
         new_samples = np.zeros((n_synthetic_sample, dimension))
-        new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
+        #new_samples_cat = np.zeros((n_synthetic_sample, len(self.categorical_features)),dtype=object)
         for i in range(n_synthetic_sample):
             indice = np.random.randint(n_minoritaire)
             indices_neigh = [
@@ -822,8 +822,18 @@ class MultiOutPutClassifier_and_MGS(BaseOverSampler):
             ).T
             new_samples[i, :] = new_observation
         ############### CATEGORICAL ################## 
-            new_pred = self.Classifier.predict(new_observation.reshape(1, -1))
-            new_samples_cat[i, :] = new_pred
+            
+        #    if self.to_encode:
+        #        new_pred= self.Classifier.predict(newdata = new_observation,functional = "mean")
+        #        new_pred = new_pred.mean.ravel()
+        #    else:
+        #        new_pred = self.Classifier.predict(new_observation.reshape(1, -1))
+        #    new_samples_cat[i, :] = new_pred
+        if self.to_encode:
+            out = self.Classifier.predict(newdata = new_samples, functional = "mean")
+            new_samples_cat = out.mean
+        else:
+             new_samples_cat = self.Classifier.predict(new_samples)
         np.random.seed()
         ##### END ######
         if self.to_encode:
