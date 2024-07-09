@@ -256,7 +256,7 @@ def run_eval(
             ######### Run of the given fold ###############
 
             # Is shuffling useful within a fold isn't integrated in RF model ?
-            X_res, y_res = shuffle(X_res, y_res)  # to put in oversampling_func
+            X_res, y_res = shuffle(X_res, y_res,random_state=0)  # to put in oversampling_func
             model.fit(X_res, y_res)
             forest = hasattr(model, "estimators_") and hasattr(
                 model.estimators_[0], "get_depth"
