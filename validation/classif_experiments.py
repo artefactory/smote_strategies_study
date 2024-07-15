@@ -199,6 +199,7 @@ def run_eval(
     #subsample_ratios=[0.2, 0.1, 0.01],
     #subsample_seeds=[11, 9, 5],
     to_standard_scale=True,
+    to_shuffle=True,
     categorical_features=None
 ):
     """
@@ -254,9 +255,9 @@ def run_eval(
                 X=X_train, y=y_train, **oversampling_params
             )
             ######### Run of the given fold ###############
-
-            # Is shuffling useful within a fold isn't integrated in RF model ?
-            X_res, y_res = shuffle(X_res, y_res,random_state=0)  # to put in oversampling_func
+            if to_shuffle:
+                # Is shuffling useful within a fold isn't integrated in RF model ?
+                X_res, y_res = shuffle(X_res, y_res,random_state=0)  # to put in oversampling_func
             model.fit(X_res, y_res)
             forest = hasattr(model, "estimators_") and hasattr(
                 model.estimators_[0], "get_depth"
