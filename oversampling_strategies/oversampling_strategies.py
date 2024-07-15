@@ -17,7 +17,7 @@ class CVSmoteModel(object):
     CVSmoteModel. It's an estimator and not a oversampling strategy only like the others class in this file.
     """
 
-    def __init__(self, splitter, model, list_k_max=100, list_k_step=10):
+    def __init__(self, splitter, model, list_k_max=100, list_k_step=10, take_all_default_value_k=None):
         """_summary_
 
         Parameters
@@ -36,6 +36,7 @@ class CVSmoteModel(object):
         self.list_k_step = list_k_step  # why is it called list ?
         self.model = model
         self.estimators_ = [0]  # are you sure about it ?
+        self.take_all_default_value_k = take_all_default_value_k
 
     def fit(self, X, y, sample_weight=None):
         """
@@ -52,6 +53,9 @@ class CVSmoteModel(object):
             max(int(0.5*n_positifs),1),
             max(int(0.7*n_positifs),1)
         ]
+        if self.take_all_default_value_k is not None:
+            list_k_neighbors = list_k_neighbors[:self.take_all_default_value_k] ## max value is 6
+            
         list_k_neighbors.extend(
             list(np.arange(1, self.list_k_max, self.list_k_step, dtype=int))
         )
