@@ -9,15 +9,19 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
 
-
-
-
 class CVSmoteModel(object):
     """
     CVSmoteModel. It's an estimator and not a oversampling strategy only like the others class in this file.
     """
 
-    def __init__(self, splitter, model, list_k_max=100, list_k_step=10, take_all_default_value_k=None):
+    def __init__(
+        self,
+        splitter,
+        model,
+        list_k_max=100,
+        list_k_step=10,
+        take_all_default_value_k=None,
+    ):
         """_summary_
 
         Parameters
@@ -50,12 +54,14 @@ class CVSmoteModel(object):
             max(int(0.01 * n_positifs), 1),
             max(int(0.1 * n_positifs), 1),
             max(int(np.sqrt(n_positifs)), 1),
-            max(int(0.5*n_positifs),1),
-            max(int(0.7*n_positifs),1)
+            max(int(0.5 * n_positifs), 1),
+            max(int(0.7 * n_positifs), 1),
         ]
         if self.take_all_default_value_k is not None:
-            list_k_neighbors = list_k_neighbors[:self.take_all_default_value_k] ## max value is 6
-            
+            list_k_neighbors = list_k_neighbors[
+                : self.take_all_default_value_k
+            ]  ## max value is 6
+
         list_k_neighbors.extend(
             list(np.arange(1, self.list_k_max, self.list_k_step, dtype=int))
         )
@@ -107,7 +113,7 @@ class MGS(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        if n_points is None :
+        if n_points is None:
             self.n_points = K
         else:
             self.n_points = n_points
@@ -151,15 +157,15 @@ class MGS(BaseOverSampler):
                 random.sample(range(1, self.K + 1), self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.K+1) * X_positifs[indice_neighbors, :].sum(axis=0)
+            mu = (1 / self.K + 1) * X_positifs[indice_neighbors, :].sum(axis=0)
             sigma = (
                 self.llambda
-                * (1 / self.K+1)
+                * (1 / self.K + 1)
                 * (X_positifs[indice_neighbors, :] - mu).T.dot(
                     (X_positifs[indice_neighbors, :] - mu)
                 )
             )
-            
+
             new_observation = np.random.multivariate_normal(
                 mu, sigma, check_valid="raise"
             ).T
@@ -179,16 +185,14 @@ class MGS2(BaseOverSampler):
     MGS2 : Faster version of MGS using SVD decomposition
     """
 
-    def __init__(
-        self, K, llambda, sampling_strategy="auto", random_state=None
-    ):
+    def __init__(self, K, llambda, sampling_strategy="auto", random_state=None):
         """
         llambda is a float.
         """
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        self.random_state = random_state  
+        self.random_state = random_state
 
     def _fit_resample(self, X, y=None, n_final_sample=None):
         """
@@ -218,36 +222,43 @@ class MGS2(BaseOverSampler):
 
         n_synthetic_sample = n_final_sample - n_minoritaire
 
-
         # computing mu and covariance at once for every minority class points
         all_neighbors = X_positifs[neighbors_by_index.flatten()]
-        mus = (1 / (self.K+1)) * all_neighbors.reshape(len(X_positifs), self.K + 1, dimension).sum(axis=1)
-        centered_X = X_positifs[neighbors_by_index.flatten()] - np.repeat(mus, self.K + 1, axis=0)
+        mus = (1 / (self.K + 1)) * all_neighbors.reshape(
+            len(X_positifs), self.K + 1, dimension
+        ).sum(axis=1)
+        centered_X = X_positifs[neighbors_by_index.flatten()] - np.repeat(
+            mus, self.K + 1, axis=0
+        )
         centered_X = centered_X.reshape(len(X_positifs), self.K + 1, dimension)
-        covs = self.llambda * np.matmul(np.swapaxes(centered_X,1,2), centered_X) / (self.K+1)
-        
+        covs = (
+            self.llambda
+            * np.matmul(np.swapaxes(centered_X, 1, 2), centered_X)
+            / (self.K + 1)
+        )
+
         # spectral decomposition of all covariances
-        eigen_values, eigen_vectors = np.linalg.eigh(covs) ## long
-        eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** .5
+        eigen_values, eigen_vectors = np.linalg.eigh(covs)  ## long
+        eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** 0.5
         As = [eigen_vectors[i].dot(eigen_values[i]) for i in range(len(eigen_values))]
 
         np.random.seed(self.random_state)
         # sampling all new points
-        #u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
-        #new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
+        # u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
+        # new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
         indices = np.random.randint(n_minoritaire, size=n_synthetic_sample)
         new_samples = np.zeros((n_synthetic_sample, dimension))
-        for i,central_point in enumerate(indices):
+        for i, central_point in enumerate(indices):
             u = np.random.normal(loc=0, scale=1, size=dimension)
             new_observation = mus[central_point, :] + As[central_point].dot(u)
             new_samples[i, :] = new_observation
         np.random.seed()
-        
+
         oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
         oversampled_y = np.hstack(
             (np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1))
         )
-        
+
         return oversampled_X, oversampled_y
 
 
@@ -262,5 +273,3 @@ class NoSampling(object):
         y is a numpy array of dimension (n,)
         """
         return X, y
-    
-
