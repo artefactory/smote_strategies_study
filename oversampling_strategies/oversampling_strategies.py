@@ -125,57 +125,55 @@ class MGS(BaseOverSampler):
         if n_final_sample=None, objective is balanced data.
         """
 
-        if y is None:
-            X_positifs = X
-            X_negatifs = np.ones((0, X.shape[1]))
-            assert (
-                n_final_sample is not None
-            ), "You need to provide a number of final samples."
-        else:
-            X_positifs = X[y == 1]
-            X_negatifs = X[y == 0]
-            if n_final_sample is None:
-                n_final_sample = (y == 0).sum()
-
-        n_minoritaire = X_positifs.shape[0]
-        dimension = X.shape[1]
-        neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
-        neigh.fit(X_positifs)
-        neighbor_by_index = neigh.kneighbors(
-            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
-        )
-
-        n_synthetic_sample = n_final_sample - n_minoritaire
-        new_samples = np.zeros((n_synthetic_sample, dimension))
         np.random.seed(self.random_state)
-        for i in range(n_synthetic_sample):
-            indice = np.random.randint(n_minoritaire)
-            indices_neigh = [
-                0
-            ]  ## the central point is selected for the expectation and covariance matrix
-            indices_neigh.extend(
-                random.sample(range(1, self.K + 1), self.n_points)
-            )  # The nearrest neighbor selected for the estimation
-            indice_neighbors = neighbor_by_index[indice][indices_neigh]
-            mu = (1 / self.K + 1) * X_positifs[indice_neighbors, :].sum(axis=0)
-            sigma = (
-                self.llambda
-                * (1 / self.K + 1)
-                * (X_positifs[indice_neighbors, :] - mu).T.dot(
-                    (X_positifs[indice_neighbors, :] - mu)
-                )
+
+        oversampled_X = X
+        oversampled_y = y
+        for class_sample, n_samples in self.sampling_strategy_.items():
+            if n_samples == 0:
+                continue
+            X_positifs = X[y == class_sample] ## current class
+
+            n_minoritaire = X_positifs.shape[0]
+            dimension = X.shape[1]
+            neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
+            neigh.fit(X_positifs)
+            neighbor_by_index = neigh.kneighbors(
+                X=X_positifs, n_neighbors=self.K + 1, return_distance=False
             )
 
-            new_observation = np.random.multivariate_normal(
-                mu, sigma, check_valid="raise"
-            ).T
-            new_samples[i, :] = new_observation
-        np.random.seed()
+            n_synthetic_sample = n_final_sample - n_minoritaire
+            new_samples = np.zeros((n_synthetic_sample, dimension))
+            
+            for i in range(n_synthetic_sample):
+                indice = np.random.randint(n_minoritaire)
+                indices_neigh = [
+                    0
+                ]  ## the central point is selected for the expectation and covariance matrix
+                indices_neigh.extend(
+                    random.sample(range(1, self.K + 1), self.n_points)
+                )  # The nearrest neighbor selected for the estimation
+                indice_neighbors = neighbor_by_index[indice][indices_neigh]
+                mu = (1 / self.K + 1) * X_positifs[indice_neighbors, :].sum(axis=0)
+                sigma = (
+                    self.llambda
+                    * (1 / self.K + 1)
+                    * (X_positifs[indice_neighbors, :] - mu).T.dot(
+                        (X_positifs[indice_neighbors, :] - mu)
+                    )
+                )
 
-        oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
-        oversampled_y = np.hstack(
-            (np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1))
-        )
+                new_observation = np.random.multivariate_normal(
+                    mu, sigma, check_valid="raise"
+                ).T
+                new_samples[i, :] = new_observation
+            
+            ## Add the generated samples of the class to the final array
+            oversampled_X = np.concatenate((oversampled_X, new_samples), axis=0)
+            oversampled_y = np.hstack(
+                (oversampled_y,np.np.full(n_samples, class_sample))
+            )
+        np.random.seed()
 
         return oversampled_X, oversampled_y
 
