@@ -9,9 +9,58 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
 
+class SamplingStrategy(BaseOverSampler):
+    """
+    MGS : Multivariate Gaussian SMOTE.
+    This method is depreciated when the covariance matrix of the gaussians distributions contain 0 as eigenvalue.
+    We recmmand using MGS2 in such cases.
+    """
+
+    def __init__(
+        self, sampling_strategy="auto", random_state=None
+    ):
+        """
+        llambda is a float.
+        """
+        super().__init__(sampling_strategy=sampling_strategy)
+
+    def _fit_resample(self):
+        class_sample, n_samples = self.sampling_strategy_.items()
+        print(n_samples)
+        print(class_sample)
+        return n_samples
+        
+def _count_class_sample(y):
+    unique, counts = np.unique(y, return_counts=True)
+    return dict(zip(unique, counts))
+def _sampling_strategy_not_majority(y, sampling_type):
+    """Returns sampling target by targeting all classes but not the
+    majority."""
+    target_stats = _count_class_sample(y)
+    if sampling_type == "over-sampling":
+        n_sample_majority = max(target_stats.values())
+        class_majority = max(target_stats, key=target_stats.get)
+        sampling_strategy = {
+            key: n_sample_majority - value
+            for (key, value) in target_stats.items()
+            if key != class_majority
+        }
+    elif sampling_type == "under-sampling" or sampling_type == "clean-sampling":
+        n_sample_minority = min(target_stats.values())
+        class_majority = max(target_stats, key=target_stats.get)
+        sampling_strategy = {
+            key: n_sample_minority
+            for key in target_stats.keys()
+            if key != class_majority
+        }
+    else:
+        raise ValueError('sampling_type not implemented.')
+    
+
+    return sampling_strategy
 class CVSmoteModel(object):
     """
-    CVSmoteModel. It's an estimator and not a oversampling strategy only like the others class in this file.
+    CVSmoteModel. It's an estimator and not a oversampling strategy like the others class in this file.
     """
 
     def __init__(
@@ -21,6 +70,7 @@ class CVSmoteModel(object):
         list_k_max=100,
         list_k_step=10,
         take_all_default_value_k=None,
+        sampling_strategy="auto",
     ):
         """_summary_
 
@@ -41,14 +91,24 @@ class CVSmoteModel(object):
         self.model = model
         self.estimators_ = [0]  # are you sure about it ?
         self.take_all_default_value_k = take_all_default_value_k
+        self.sampling_strategy = sampling_strategy
 
     def fit(self, X, y, sample_weight=None):
         """
         X and y are numpy arrays
         sample_weight is a numpy array
         """
+        #sampling = SamplingStrategy()
+        #n_samples =sampling.fit_resample()
+        #n_positifs = min(n_samples)
+        #sampling_startegy = _sampling_strategy_not_majority(y, sampling_type="over-sampling")
+        #n_positifs = min(sampling_startegy.values())
 
-        n_positifs = np.array(y, dtype=bool).sum()
+        unique, counts = np.unique(y, return_counts=True)
+        n_positifs = min(counts)
+        #print('sampling_startegy',sampling_startegy)
+        print('n_positifs',n_positifs)
+        #n_positifs = np.array(y, dtype=bool).sum()
         list_k_neighbors = [
             5,
             max(int(0.01 * n_positifs), 1),
@@ -73,15 +133,15 @@ class CVSmoteModel(object):
         for k in list_k_neighbors:
             scores = []
             for train, test in folds:
-                new_X, new_y = SMOTE(k_neighbors=k).fit_resample(X[train], y[train])
+                new_X, new_y = SMOTE(k_neighbors=k,sampling_strategy=self.sampling_strategy).fit_resample(X[train], y[train])
                 self.model.fit(X=new_X, y=new_y, sample_weight=sample_weight)
                 scores.append(
-                    roc_auc_score(y[test], self.model.predict_proba(X[test])[:, 1])
+                    roc_auc_score(y[test], self.model.predict_proba(X[test]),multi_class='ovr',average='macro')
                 )
             if sum(scores) > best_score:
                 best_k = k
 
-        new_X, new_y = SMOTE(k_neighbors=best_k).fit_resample(X, y)
+        new_X, new_y = SMOTE(k_neighbors=best_k,sampling_strategy=self.sampling_strategy).fit_resample(X, y)
         self.model.fit(X=new_X, y=new_y, sample_weight=sample_weight)
         if hasattr(self.model, "estimators_"):
             self.estimators_ = self.model.estimators_
@@ -142,7 +202,7 @@ class MGS(BaseOverSampler):
                 X=X_positifs, n_neighbors=self.K + 1, return_distance=False
             )
 
-            n_synthetic_sample = n_final_sample - n_minoritaire
+            n_synthetic_sample = n_samples 
             new_samples = np.zeros((n_synthetic_sample, dimension))
             
             for i in range(n_synthetic_sample):
@@ -171,7 +231,7 @@ class MGS(BaseOverSampler):
             ## Add the generated samples of the class to the final array
             oversampled_X = np.concatenate((oversampled_X, new_samples), axis=0)
             oversampled_y = np.hstack(
-                (oversampled_y,np.np.full(n_samples, class_sample))
+                (oversampled_y,np.full(n_samples, class_sample))
             )
         np.random.seed()
 
