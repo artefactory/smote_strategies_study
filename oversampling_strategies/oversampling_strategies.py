@@ -156,7 +156,7 @@ class MGS(BaseOverSampler):
                 0
             ]  ## the central point is selected for the expectation and covariance matrix
             indices_neigh.extend(
-                random.sample(range(1, self.K + 1), self.n_points)
+                np.random.choice(a=range(1, self.K + 1),size=self.n_points)
             )  # The nearrest neighbor selected for the estimation
             indice_neighbors = neighbor_by_index[indice][indices_neigh]
             mu = (1 / self.K + 1) * X_positifs[indice_neighbors, :].sum(axis=0)
