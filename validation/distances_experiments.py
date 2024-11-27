@@ -961,3 +961,18 @@ def plot_mutiple_run_real_data(
     if bool_to_save is True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
+
+
+def max_depth_function(output_dir,name_file):
+    list_names_oversamplings = np.load(os.path.join(output_dir,"name_strats"+name_file))[1:-1] #We remove the columns 'y_true' et 'fold'
+    array_tree_depth = np.load(os.path.join(output_dir,
+                                        "depth"+name_file))
+    array_tree_depth_mean=array_tree_depth.mean(axis=1)
+    list_res_par_strat = []
+    int_pas = len(list_names_oversamplings)
+
+    for fold in range(5):
+        list_res_par_strat.append(array_tree_depth_mean[0+int_pas*fold:int_pas+int_pas*fold])
+
+    df_max_depth_by_fold = pd.DataFrame(np.array(list_res_par_strat),columns=list_names_oversamplings)
+    return df_max_depth_by_fold
