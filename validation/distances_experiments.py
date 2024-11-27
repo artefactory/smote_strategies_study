@@ -961,3 +961,12 @@ def plot_mutiple_run_real_data(
     if bool_to_save is True:
         plt.savefig(os.path.join(output_dir_save, name_file_save))
     plt.show()
+
+def depth_func_linspace(min_value,max_value,size=10,add_border=False):
+    list_depth = np.linspace(min_value,max_value,size, dtype=int).tolist()
+    if add_border:
+        border_array = [max_value-3,max_value-2,max_value-1,max_value,None]
+    else :
+        border_array=[None]
+    list_depth.extend(border_array)
+    return list(dict.fromkeys(list_depth))
