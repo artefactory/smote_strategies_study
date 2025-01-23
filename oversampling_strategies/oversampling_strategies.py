@@ -128,7 +128,6 @@ class MGS(BaseOverSampler):
     def _fit_resample(self, X, y=None, n_final_sample=None):
         """
         if y=None, all points are considered positive, and oversampling on all X
-        if n_final_sample=None, objective is balanced data.
         """
 
         np.random.seed(self.random_state)
@@ -201,67 +200,63 @@ class MGS2(BaseOverSampler):
     def _fit_resample(self, X, y=None, n_final_sample=None):
         """
         if y=None, all points are considered positive, and oversampling on all X
-        if n_final_sample=None, objective is balanced data.
         """
 
-        if y is None:
-            X_positifs = X
-            X_negatifs = np.ones((0, X.shape[1]))
-            assert (
-                n_final_sample is not None
-            ), "You need to provide a number of final samples."
-        else:
-            X_positifs = X[y == 1]
-            X_negatifs = X[y == 0]
-            if n_final_sample is None:
-                n_final_sample = (y == 0).sum()
-
-        n_minoritaire = X_positifs.shape[0]
-        dimension = X.shape[1]
-        neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
-        neigh.fit(X_positifs)
-        neighbors_by_index = neigh.kneighbors(
-            X=X_positifs, n_neighbors=self.K + 1, return_distance=False
-        )
-
-        n_synthetic_sample = n_final_sample - n_minoritaire
-
-        # computing mu and covariance at once for every minority class points
-        all_neighbors = X_positifs[neighbors_by_index.flatten()]
-        mus = (1 / (self.K + 1)) * all_neighbors.reshape(
-            len(X_positifs), self.K + 1, dimension
-        ).sum(axis=1)
-        centered_X = X_positifs[neighbors_by_index.flatten()] - np.repeat(
-            mus, self.K + 1, axis=0
-        )
-        centered_X = centered_X.reshape(len(X_positifs), self.K + 1, dimension)
-        covs = (
-            self.llambda
-            * np.matmul(np.swapaxes(centered_X, 1, 2), centered_X)
-            / (self.K + 1)
-        )
-
-        # spectral decomposition of all covariances
-        eigen_values, eigen_vectors = np.linalg.eigh(covs)  ## long
-        eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** 0.5
-        As = [eigen_vectors[i].dot(eigen_values[i]) for i in range(len(eigen_values))]
-
         np.random.seed(self.random_state)
-        # sampling all new points
-        # u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
-        # new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
-        indices = np.random.randint(n_minoritaire, size=n_synthetic_sample)
-        new_samples = np.zeros((n_synthetic_sample, dimension))
-        for i, central_point in enumerate(indices):
-            u = np.random.normal(loc=0, scale=1, size=dimension)
-            new_observation = mus[central_point, :] + As[central_point].dot(u)
-            new_samples[i, :] = new_observation
-        np.random.seed()
 
-        oversampled_X = np.concatenate((X_negatifs, X_positifs, new_samples), axis=0)
-        oversampled_y = np.hstack(
-            (np.full(len(X_negatifs), 0), np.full((n_final_sample,), 1))
-        )
+        oversampled_X = X
+        oversampled_y = y
+        for class_sample, n_samples in self.sampling_strategy_.items():
+            if n_samples == 0:
+                continue
+            X_positifs = X[y == class_sample] ## current class
+
+            n_minoritaire = X_positifs.shape[0]
+            dimension = X.shape[1]
+            neigh = NearestNeighbors(n_neighbors=self.K, algorithm="ball_tree")
+            neigh.fit(X_positifs)
+            neighbors_by_index = neigh.kneighbors(
+                X=X_positifs, n_neighbors=self.K + 1, return_distance=False
+            )
+
+            n_synthetic_sample = n_final_sample - n_minoritaire
+
+            # computing mu and covariance at once for every minority class points
+            all_neighbors = X_positifs[neighbors_by_index.flatten()]
+            mus = (1 / (self.K + 1)) * all_neighbors.reshape(
+                len(X_positifs), self.K + 1, dimension
+            ).sum(axis=1)
+            centered_X = X_positifs[neighbors_by_index.flatten()] - np.repeat(
+                mus, self.K + 1, axis=0
+            )
+            centered_X = centered_X.reshape(len(X_positifs), self.K + 1, dimension)
+            covs = (
+                self.llambda
+                * np.matmul(np.swapaxes(centered_X, 1, 2), centered_X)
+                / (self.K + 1)
+            )
+
+            # spectral decomposition of all covariances
+            eigen_values, eigen_vectors = np.linalg.eigh(covs)  ## long
+            eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** 0.5
+            As = [eigen_vectors[i].dot(eigen_values[i]) for i in range(len(eigen_values))]
+
+            np.random.seed(self.random_state)
+            # sampling all new points
+            # u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
+            # new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
+            indices = np.random.randint(n_minoritaire, size=n_synthetic_sample)
+            new_samples = np.zeros((n_synthetic_sample, dimension))
+            for i, central_point in enumerate(indices):
+                u = np.random.normal(loc=0, scale=1, size=dimension)
+                new_observation = mus[central_point, :] + As[central_point].dot(u)
+                new_samples[i, :] = new_observation
+            ## Add the generated samples of the class to the final array
+            oversampled_X = np.concatenate((oversampled_X, new_samples), axis=0)
+            oversampled_y = np.hstack(
+                (oversampled_y,np.full(n_samples, class_sample))
+            )
+        np.random.seed()
 
         return oversampled_X, oversampled_y
 
