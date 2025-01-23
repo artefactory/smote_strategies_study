@@ -9,55 +9,8 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import roc_auc_score
 
 
-class SamplingStrategy(BaseOverSampler):
-    """
-    MGS : Multivariate Gaussian SMOTE.
-    This method is depreciated when the covariance matrix of the gaussians distributions contain 0 as eigenvalue.
-    We recmmand using MGS2 in such cases.
-    """
-
-    def __init__(
-        self, sampling_strategy="auto", random_state=None
-    ):
-        """
-        llambda is a float.
-        """
-        super().__init__(sampling_strategy=sampling_strategy)
-
-    def _fit_resample(self):
-        class_sample, n_samples = self.sampling_strategy_.items()
-        print(n_samples)
-        print(class_sample)
-        return n_samples
-        
-def _count_class_sample(y):
-    unique, counts = np.unique(y, return_counts=True)
-    return dict(zip(unique, counts))
-def _sampling_strategy_not_majority(y, sampling_type):
-    """Returns sampling target by targeting all classes but not the
-    majority."""
-    target_stats = _count_class_sample(y)
-    if sampling_type == "over-sampling":
-        n_sample_majority = max(target_stats.values())
-        class_majority = max(target_stats, key=target_stats.get)
-        sampling_strategy = {
-            key: n_sample_majority - value
-            for (key, value) in target_stats.items()
-            if key != class_majority
-        }
-    elif sampling_type == "under-sampling" or sampling_type == "clean-sampling":
-        n_sample_minority = min(target_stats.values())
-        class_majority = max(target_stats, key=target_stats.get)
-        sampling_strategy = {
-            key: n_sample_minority
-            for key in target_stats.keys()
-            if key != class_majority
-        }
-    else:
-        raise ValueError('sampling_type not implemented.')
     
 
-    return sampling_strategy
 class CVSmoteModel(object):
     """
     CVSmoteModel. It's an estimator and not a oversampling strategy like the others class in this file.
@@ -98,17 +51,10 @@ class CVSmoteModel(object):
         X and y are numpy arrays
         sample_weight is a numpy array
         """
-        #sampling = SamplingStrategy()
-        #n_samples =sampling.fit_resample()
-        #n_positifs = min(n_samples)
-        #sampling_startegy = _sampling_strategy_not_majority(y, sampling_type="over-sampling")
-        #n_positifs = min(sampling_startegy.values())
 
         unique, counts = np.unique(y, return_counts=True)
         n_positifs = min(counts)
-        #print('sampling_startegy',sampling_startegy)
         print('n_positifs',n_positifs)
-        #n_positifs = np.array(y, dtype=bool).sum()
         list_k_neighbors = [
             5,
             max(int(0.01 * n_positifs), 1),
