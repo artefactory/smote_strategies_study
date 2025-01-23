@@ -39,10 +39,10 @@ class CVSmoteModel(object):
             _description_, by default 10
         """
         self.splitter = splitter
-        self.list_k_max = list_k_max  # why is it called list ?
-        self.list_k_step = list_k_step  # why is it called list ?
+        self.list_k_max = list_k_max  
+        self.list_k_step = list_k_step  
         self.model = model
-        self.estimators_ = [0]  # are you sure about it ?
+        self.estimators_ = [0]  
         self.take_all_default_value_k = take_all_default_value_k
         self.sampling_strategy = sampling_strategy
 
@@ -66,7 +66,7 @@ class CVSmoteModel(object):
         if self.take_all_default_value_k is not None:
             list_k_neighbors = list_k_neighbors[
                 : self.take_all_default_value_k
-            ]  ## max value is 6
+            ]  
 
         list_k_neighbors.extend(
             list(np.arange(1, self.list_k_max, self.list_k_step, dtype=int))
@@ -75,7 +75,7 @@ class CVSmoteModel(object):
         best_score = -1
         folds = list(
             self.splitter.split(X, y)
-        )  # you really need to transform it into a list ?
+        )  
         for k in list_k_neighbors:
             scores = []
             for train, test in folds:
@@ -241,10 +241,7 @@ class MGS2(BaseOverSampler):
             eigen_values[eigen_values > 1e-10] = eigen_values[eigen_values > 1e-10] ** 0.5
             As = [eigen_vectors[i].dot(eigen_values[i]) for i in range(len(eigen_values))]
 
-            np.random.seed(self.random_state)
             # sampling all new points
-            # u = np.random.normal(loc=0, scale=1, size=(len(indices), dimension))
-            # new_samples = [mus[central_point] + As[central_point].dot(u[central_point]) for i in indices]
             indices = np.random.randint(n_minoritaire, size=n_synthetic_sample)
             new_samples = np.zeros((n_synthetic_sample, dimension))
             for i, central_point in enumerate(indices):
