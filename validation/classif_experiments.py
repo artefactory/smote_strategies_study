@@ -217,12 +217,13 @@ def run_eval(
 
     ################## INITIALISATION #################
     n_strategy = len(list_oversampling_and_params)
-    list_names_oversamplings = ["y_true"] + [
+    list_names_oversamplings = [
         config[0] for config in list_oversampling_and_params
     ]
-    list_names_oversamplings.append("fold")
+    #list_names_oversamplings.append("fold")
 
-    list_all_preds = [[] for i in range(n_strategy + 2)]
+    list_all_preds = [[] for i in range(n_strategy )]
+    list_target_fold = [[],[]]
     list_tree_depth = []
     list_tree_depth_name = []
 
@@ -282,15 +283,15 @@ def run_eval(
                     X_test[:, bool_mask] = scaler.transform(
                         X_test[:, bool_mask]
                     )  ## continuous features only
-            y_pred_probas = model.predict_proba(X_test)[:, 1]
+            y_pred_probas = model.predict_proba(X_test)
 
             ######## Results are saved ###################
-            list_all_preds[i + 1].extend(y_pred_probas)
+            list_all_preds[i].extend(y_pred_probas)
             if i == 0:
-                list_all_preds[-1].extend(
+                list_target_fold[-1].extend(
                     np.full((len(test),), fold)
                 )  # save information of the ciurrent testing fold
-                list_all_preds[0].extend(
+                list_target_fold[0].extend(
                     y_copy[test]
                 )  # save the information of the target value
     if len(list_tree_depth) != 0:
@@ -298,7 +299,9 @@ def run_eval(
             os.path.join(output_dir, "depth" + name_file[:-4] + ".csv")
         )
     runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
-    np.save(runs_path_file_strats, np.array(list_all_preds).T)
+    np.save(runs_path_file_strats, np.array(list_all_preds))
+    runs_path_file_strats = os.path.join(output_dir, "target_" + name_file)
+    np.save(runs_path_file_strats, np.array(list_target_fold))
     np.save(
         os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
     )
@@ -327,11 +330,14 @@ def compute_metrics(output_dir, name_file, list_metric):
         metrics_names.append(list_metric[m][1])
     oversample_strategies = np.load(os.path.join(output_dir, "name_strats" + name_file))
     predictions_by_strategy = np.load(os.path.join(output_dir, "preds_" + name_file))
-    df_all = pd.DataFrame(predictions_by_strategy, columns=oversample_strategies)
+    target_and_fold_array = np.load(os.path.join(output_dir, "target_" + name_file))
 
-    name_col_strategies = df_all.columns.tolist()
-    name_col_strategies.remove("y_true")
-    name_col_strategies.remove("fold")
+    #df_all = pd.DataFrame(predictions_by_strategy, columns=oversample_strategies)
+    #df_all = pd.concat([df_all,target_and_fold_array],axis=1)
+
+    name_col_strategies = oversample_strategies
+    #name_col_strategies.remove("y_true")
+    #name_col_strategies.remove("fold")
     # We remove  'y_true' and 'fold'
 
     array_resultats_metrics = np.zeros((n_metric, len(name_col_strategies)))
@@ -341,17 +347,26 @@ def compute_metrics(output_dir, name_file, list_metric):
             ### Mean of the metrics on the 5 test folds:
             list_value = []
             for j in range(5):
-                df = df_all[df_all["fold"] == j]
-                y_true = df["y_true"].tolist()
-                pred_probas_all = df[col_name].tolist()
-                y_pred = proba_to_label(y_pred_probas=pred_probas_all, treshold=0.5)
+                #df = df_all[df_all["fold"] == j]
+                #y_true = df["y_true"].tolist()
+                #pred_probas_all = df[col_name].tolist()
+                #y_pred = proba_to_label(y_pred_probas=pred_probas_all, treshold=0.5)
+                y_true = target_and_fold_array[0][target_and_fold_array[1]==j].tolist()
+                pred_probas_all =predictions_by_strategy[col_number][target_and_fold_array[1]==j]
+                #pred_probas_all = current_fold[col_number,:,:].tolist()
+                
 
                 if list_metric[k][2] == "pred":
-                    value_metric = list_metric[k][0](y_true=y_true, y_pred=y_pred)
+                    value_metric = list_metric[k][0](y_true=y_true, y_pred=y_pred,average='macro')
                 else:
-                    value_metric = list_metric[k][0](
-                        y_true=y_true, y_score=pred_probas_all
-                    )
+                    if list_metric[k][1] == "roc_auc":
+                        value_metric = list_metric[k][0](
+                            y_true=y_true, y_score=pred_probas_all,multi_class='ovr',average='macro'
+                        )
+                    else:
+                        value_metric = list_metric[k][0](
+                            y_true=y_true, y_score=pred_probas_all,average='macro'
+                        )
                 list_value.append(value_metric)
             array_resultats_metrics[k, col_number] = np.mean(list_value)
             array_resultats_metrics_std[k, col_number] = np.std(list_value)
@@ -711,9 +726,51 @@ def plot_curves_tuned(
 
 
 from sklearn.metrics import precision_recall_curve, auc
-
-
 def pr_auc_custom(y_true, y_score):
     precision, recall, tresh = precision_recall_curve(y_true, y_score)
     res_auc = auc(recall, precision)
     return res_auc
+    
+from sklearn.metrics import precision_score
+def find_precision_at_recall_version3(precision, recall, threshold):
+    #disp = PrecisionRecallDisplay(precision=precision, recall=recall)
+    #disp.plot()
+    #plt.show()
+    roc_df = pd.DataFrame({'precision': precision[:-1], 'recall': recall[:-1], 'threshold':threshold })
+    roc_df.sort_values(by=['recall'],inplace=True)
+    roc_df.reset_index(drop=True, inplace=True)
+
+    indices=roc_df[roc_df['recall'] >= 0.5].index
+    ###index_final=roc_df.iloc[indices].idxmax()[0] # retourne les indices max colonne par colonne
+    ### le [0] c'est pour sélectionner le max selon la precision 
+    index_final=indices[0]
+    #print('res second:', roc_df.iloc[indices[2]].values)
+    res = roc_df.iloc[index_final].values
+    return res[0],res[1]
+
+def prec_at_recall_version3(y_true,y_score):
+    precision, recall, thresholds = precision_recall_curve(y_true=y_true,y_score=y_score)
+    res_precision, res_recall = find_precision_at_recall_version3(precision=precision, recall=recall, threshold=thresholds)
+    return res_precision
+
+def find_precision_at_recall_version3_02(precision, recall, threshold):
+    #disp = PrecisionRecallDisplay(precision=precision, recall=recall)
+    #disp.plot()
+    #plt.show()
+    roc_df = pd.DataFrame({'precision': precision[:-1], 'recall': recall[:-1], 'threshold':threshold })
+    roc_df.sort_values(by=['recall'],inplace=True)
+    roc_df.reset_index(drop=True, inplace=True)
+
+    indices=roc_df[roc_df['recall'] >= 0.2].index
+    ###index_final=roc_df.iloc[indices].idxmax()[0] # retourne les indices max colonne par colonne
+    ### le [0] c'est pour sélectionner le max selon la precision 
+    index_final=indices[0]
+    #print('res second:', roc_df.iloc[indices[2]].values)
+    res = roc_df.iloc[index_final].values
+    return res[0],res[1]
+
+def prec_at_recall_version3_02(y_true,y_score):
+    precision, recall, thresholds = precision_recall_curve(y_true=y_true,y_score=y_score)
+    res_precision, res_recall = find_precision_at_recall_version3_02(precision=precision, recall=recall, threshold=thresholds)
+    return res_precision
+
