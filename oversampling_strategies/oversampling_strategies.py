@@ -108,6 +108,8 @@ class CVSmoteModel(object):
 class MGS(BaseOverSampler):
     """
     MGS : Multivariate Gaussian SMOTE
+    This method is depreciated when the covariance matrix of the gaussians distributions contain 0 as eigenvalue.
+    We recmmand using MGS2 in such cases.
     """
 
     def __init__(
