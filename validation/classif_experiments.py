@@ -201,6 +201,7 @@ def run_eval(
     to_standard_scale=True,
     to_shuffle=True,
     categorical_features=None,
+    kind='binary',
 ):
     """
     Main function of the procol.
@@ -217,15 +218,22 @@ def run_eval(
 
     ################## INITIALISATION #################
     n_strategy = len(list_oversampling_and_params)
-    list_names_oversamplings = [
-        config[0] for config in list_oversampling_and_params
-    ]
-    #list_names_oversamplings.append("fold")
-
-    list_all_preds = [[] for i in range(n_strategy )]
-    list_target_fold = [[],[]]
-    list_tree_depth = []
-    list_tree_depth_name = []
+    if kind =='binary':
+        list_names_oversamplings = ["y_true"] + [
+            config[0] for config in list_oversampling_and_params
+        ]
+        list_names_oversamplings.append("fold")
+        list_all_preds = [[] for i in range(n_strategy + 2)]
+        list_tree_depth = []
+        list_tree_depth_name = []
+    else:   
+        list_names_oversamplings = [
+            config[0] for config in list_oversampling_and_params
+        ]
+        list_all_preds = [[] for i in range(n_strategy )]
+        list_target_fold = [[],[]]
+        list_tree_depth = []
+        list_tree_depth_name = []
 
     X_copy, y_copy = X.copy(), y.copy()
 
@@ -288,26 +296,103 @@ def run_eval(
             ######## Results are saved ###################
             list_all_preds[i].extend(y_pred_probas)
             if i == 0:
-                list_target_fold[-1].extend(
+                if kind =='binary':
+                    list_all_preds[-1].extend(
                     np.full((len(test),), fold)
-                )  # save information of the ciurrent testing fold
-                list_target_fold[0].extend(
-                    y_copy[test]
-                )  # save the information of the target value
+                    )  # save information of the ciurrent testing fold
+                    list_all_preds[0].extend(
+                        y_copy[test]
+                    )  # save the information of the target value
+                else:
+                    list_target_fold[-1].extend(
+                        np.full((len(test),), fold)
+                    )  # save information of the ciurrent testing fold
+                    list_target_fold[0].extend(
+                        y_copy[test]
+                    )  # save the information of the target value
     if len(list_tree_depth) != 0:
         pd.DataFrame(np.array(list_tree_depth).T, columns=list_tree_depth_name).to_csv(
             os.path.join(output_dir, "depth" + name_file[:-4] + ".csv")
         )
-    runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
-    np.save(runs_path_file_strats, np.array(list_all_preds))
-    runs_path_file_strats = os.path.join(output_dir, "target_" + name_file)
-    np.save(runs_path_file_strats, np.array(list_target_fold))
-    np.save(
-        os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
+    if kind =='binary':
+        runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
+        np.save(runs_path_file_strats, np.array(list_all_preds).T)
+        np.save(
+            os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
+        )
+    else:
+        runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
+        np.save(runs_path_file_strats, np.array(list_all_preds))
+        runs_path_file_strats = os.path.join(output_dir, "target_" + name_file)
+        np.save(runs_path_file_strats, np.array(list_target_fold))
+        np.save(
+            os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
+        )
+
+def compute_metrics(output_dir, name_file, list_metric,n_fold=5):
+    """_summary_
+
+    Parameters
+    ----------
+    output_dir : _type_
+        _description_
+    name_file : _type_
+        _description_
+    list_metric : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+    n_metric = len(list_metric)
+    metrics_names = []
+    for m in range(n_metric):
+        metrics_names.append(list_metric[m][1])
+    oversample_strategies = np.load(os.path.join(output_dir, "name_strats" + name_file))
+    predictions_by_strategy = np.load(os.path.join(output_dir, "preds_" + name_file))
+    df_all = pd.DataFrame(predictions_by_strategy, columns=oversample_strategies)
+
+    name_col_strategies = df_all.columns.tolist()
+    name_col_strategies.remove("y_true")
+    name_col_strategies.remove("fold")
+    # We remove  'y_true' and 'fold'
+
+    array_resultats_metrics = np.zeros((n_metric, len(name_col_strategies)))
+    array_resultats_metrics_std = np.zeros((n_metric, len(name_col_strategies)))
+    for k in range(n_metric):
+        for col_number, col_name in enumerate(name_col_strategies):
+            ### Mean of the metrics on the 5 test folds:
+            list_value = []
+            for j in range(n_fold):
+                df = df_all[df_all["fold"] == j]
+                y_true = df["y_true"].tolist()
+                pred_probas_all = df[col_name].tolist()
+                y_pred = proba_to_label(y_pred_probas=pred_probas_all, treshold=0.5)
+
+                if list_metric[k][2] == "pred":
+                    value_metric = list_metric[k][0](y_true=y_true, y_pred=y_pred)
+                else:
+                    value_metric = list_metric[k][0](
+                        y_true=y_true, y_score=pred_probas_all
+                    )
+                list_value.append(value_metric)
+            array_resultats_metrics[k, col_number] = np.mean(list_value)
+            array_resultats_metrics_std[k, col_number] = np.std(list_value)
+
+    df_mean_metric = pd.DataFrame(
+        array_resultats_metrics, columns=name_col_strategies, index=metrics_names
     )
+    df_std_metric = pd.DataFrame(
+        array_resultats_metrics_std,
+        columns=name_col_strategies,
+        index=metrics_names,
+    )
+    return df_mean_metric, df_std_metric
 
 
-def compute_metrics(output_dir, name_file, list_metric):
+def compute_metrics_multiclass(output_dir, name_file, list_metric):
     """_summary_
 
     Parameters
@@ -332,13 +417,8 @@ def compute_metrics(output_dir, name_file, list_metric):
     predictions_by_strategy = np.load(os.path.join(output_dir, "preds_" + name_file))
     target_and_fold_array = np.load(os.path.join(output_dir, "target_" + name_file))
 
-    #df_all = pd.DataFrame(predictions_by_strategy, columns=oversample_strategies)
-    #df_all = pd.concat([df_all,target_and_fold_array],axis=1)
 
     name_col_strategies = oversample_strategies
-    #name_col_strategies.remove("y_true")
-    #name_col_strategies.remove("fold")
-    # We remove  'y_true' and 'fold'
 
     array_resultats_metrics = np.zeros((n_metric, len(name_col_strategies)))
     array_resultats_metrics_std = np.zeros((n_metric, len(name_col_strategies)))
@@ -347,14 +427,8 @@ def compute_metrics(output_dir, name_file, list_metric):
             ### Mean of the metrics on the 5 test folds:
             list_value = []
             for j in range(5):
-                #df = df_all[df_all["fold"] == j]
-                #y_true = df["y_true"].tolist()
-                #pred_probas_all = df[col_name].tolist()
-                #y_pred = proba_to_label(y_pred_probas=pred_probas_all, treshold=0.5)
                 y_true = target_and_fold_array[0][target_and_fold_array[1]==j].tolist()
-                pred_probas_all =predictions_by_strategy[col_number][target_and_fold_array[1]==j]
-                #pred_probas_all = current_fold[col_number,:,:].tolist()
-                
+                pred_probas_all =predictions_by_strategy[col_number][target_and_fold_array[1]==j]                
 
                 if list_metric[k][2] == "pred":
                     value_metric = list_metric[k][0](y_true=y_true, y_pred=y_pred,average='macro')
@@ -383,7 +457,7 @@ def compute_metrics(output_dir, name_file, list_metric):
 
 
 def compute_metrics_several_protocols(
-    output_dir, init_name_file, list_metric, bool_roc_auc_only=True, n_iter=100
+    output_dir, init_name_file, list_metric, bool_roc_auc_only=True, n_iter=100,kind='binary',
 ):
     """_summary_
 
@@ -411,11 +485,19 @@ def compute_metrics_several_protocols(
     if bool_roc_auc_only is True:
         for i in range(n_iter):
             name_file = init_name_file + str(i) + ".npy"
-            df_metrics_mean, df_metrics_std = compute_metrics(
-                output_dir=output_dir,
-                name_file=name_file,
-                list_metric=[(roc_auc_score, "roc_auc", "proba")],
-            )
+            if kind == 'binary' :
+                df_metrics_mean, df_metrics_std = compute_metrics(
+                    output_dir=output_dir,
+                    name_file=name_file,
+                    list_metric=[(roc_auc_score, "roc_auc", "proba")],
+                )
+            else:
+                df_metrics_mean, df_metrics_std = compute_metrics_multiclass(
+                    output_dir=output_dir,
+                    name_file=name_file,
+                    list_metric=[(roc_auc_score, "roc_auc", "proba")],
+                )
+
             list_res.append(df_metrics_mean.to_numpy())
 
         name_cols = df_metrics_mean.columns
@@ -433,7 +515,12 @@ def compute_metrics_several_protocols(
     else:
         for i in range(n_iter):
             name_file = init_name_file + str(i) + ".npy"
-            df_metrics_mean, df_metrics_std = compute_metrics(
+            if kind == 'binary' :
+                df_metrics_mean, df_metrics_std = compute_metrics(
+                    output_dir=output_dir, name_file=name_file, list_metric=list_metric
+                )
+            else:
+                df_metrics_mean, df_metrics_std = compute_metrics_multiclass(
                 output_dir=output_dir, name_file=name_file, list_metric=list_metric
             )
 
