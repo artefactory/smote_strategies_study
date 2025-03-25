@@ -291,7 +291,10 @@ def run_eval(
                     X_test[:, bool_mask] = scaler.transform(
                         X_test[:, bool_mask]
                     )  ## continuous features only
-            y_pred_probas = model.predict_proba(X_test)
+            if kind =='binary':
+                y_pred_probas = model.predict_proba(X_test)[:, 1]
+            else:
+                y_pred_probas = model.predict_proba(X_test)
 
             ######## Results are saved ###################
             list_all_preds[i].extend(y_pred_probas)
@@ -316,7 +319,7 @@ def run_eval(
         )
     if kind =='binary':
         runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
-        np.save(runs_path_file_strats, np.array(list_all_preds).T)
+        np.save(runs_path_file_strats, np.array(list_all_preds))
         np.save(
             os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
         )
