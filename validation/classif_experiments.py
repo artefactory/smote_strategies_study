@@ -297,7 +297,7 @@ def run_eval(
                 y_pred_probas = model.predict_proba(X_test)
 
             ######## Results are saved ###################
-            list_all_preds[i].extend(y_pred_probas)
+            list_all_preds[i+1].extend(y_pred_probas)
             if i == 0:
                 if kind =='binary':
                     list_all_preds[-1].extend(
@@ -319,7 +319,7 @@ def run_eval(
         )
     if kind =='binary':
         runs_path_file_strats = os.path.join(output_dir, "preds_" + name_file)
-        np.save(runs_path_file_strats, np.array(list_all_preds))
+        np.save(runs_path_file_strats, np.array(list_all_preds).T)
         np.save(
             os.path.join(output_dir, "name_strats" + name_file), list_names_oversamplings
         )
