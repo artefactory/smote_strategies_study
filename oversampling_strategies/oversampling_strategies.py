@@ -128,7 +128,7 @@ class CVSmoteModel(BaseEstimator,ClassifierMixin):
         """
         predict_probas
         """
-        return self.model.predict_proba(X)[:,1] ## [:,1] for GridSeacrh scorer average_precision_score
+        return self.model.predict_proba(X)#[:,1] ## [:,1] for GridSeacrh scorer average_precision_score
 
 
 class MGS(BaseOverSampler):
