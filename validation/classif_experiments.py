@@ -9,6 +9,8 @@ from sklearn.utils import shuffle
 from sklearn.metrics import auc
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
+from imblearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, StratifiedShuffleSplit
 
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, roc_auc_score
 from sklearn.metrics import PrecisionRecallDisplay, RocCurveDisplay
@@ -202,6 +204,14 @@ def run_eval(
     to_shuffle=True,
     categorical_features=None,
     kind='binary',
+    to_save_model_grid_params=False,
+    to_use_pipeline=False,
+    to_optimize_kneighbors=False, 
+    to_use_suffle_split_in_grid = False,
+    list_depth = None,
+    scoring_grid=None,
+    limit_kneighbors_grid=5,
+    kneigbors_max=15,
 ):
     """
     Main function of the procol.
@@ -261,17 +271,58 @@ def run_eval(
                     X_train[:, bool_mask] = scaler.fit_transform(
                         X_train[:, bool_mask]
                     )  ## continuous features only
+                    
+            if to_use_pipeline: ## Case when an imbalanced learn pipeline is used for the training. Usefull for gridseach model.
+                if to_optimize_kneighbors:
+                    unique, counts = np.unique(y_train, return_counts=True)
+                    n_positifs = min(counts)
+                    print('n_positifs',n_positifs)
+                    list_k_neighbors = [
+                        5,
+                        max(int(0.01 * n_positifs), 1),
+                        max(int(0.1 * n_positifs), 1),
+                        max(int(np.sqrt(n_positifs)), 1),
+                        max(int(0.5 * n_positifs), 1),
+                        max(int(0.7 * n_positifs), 1),
+                    ]
+                    if limit_kneighbors_grid is not None:
+                        list_k_neighbors = list_k_neighbors[
+                            : limit_kneighbors_grid
+                        ]  
 
-            X_res, y_res = oversampling_func.fit_resample(
-                X=X_train, y=y_train, **oversampling_params
-            )
-            ######### Run of the given fold ###############
-            if to_shuffle:
-                # Is shuffling useful within a fold isn't integrated in RF model ?
-                X_res, y_res = shuffle(
-                    X_res, y_res, random_state=0
-                )  # to put in oversampling_func
-            model.fit(X_res, y_res)
+                    list_k_neighbors.extend(
+                        list(np.arange(1, kneigbors_max, 1, dtype=int))
+                    )
+                    param_grid = {'model__max_depth': list_depth, 'oversampling__k_neighbors':list_k_neighbors }
+                else:
+                    param_grid = {'model__max_depth': list_depth }
+                pipe = Pipeline([('oversampling', oversampling_func), ('model', model),])
+                if to_use_suffle_split_in_grid:
+                    splitter_stratified = StratifiedShuffleSplit(n_splits=50,test_size=0.3,random_state=0)
+                else:
+                    splitter_stratified = StratifiedKFold(n_splits=5,shuffle=True,random_state=0)
+                grid = GridSearchCV(cv=splitter_stratified,estimator=pipe,param_grid=param_grid, scoring=scoring_grid)
+                grid.fit(X_train, y_train)
+                pd.DataFrame(grid.cv_results_).to_csv(
+                    os.path.join(output_dir, "parmar_grid_fold" +str(fold) +"_fromrun"+ name_file[:-4] + ".csv")
+                    )
+            else:
+                X_res, y_res = oversampling_func.fit_resample(
+                    X=X_train, y=y_train, **oversampling_params
+                )
+                ######### Run of the given fold ###############
+                if to_shuffle:
+                    # Is shuffling useful within a fold isn't integrated in RF model ?
+                    X_res, y_res = shuffle(
+                        X_res, y_res, random_state=0
+                    )  # to put in oversampling_func
+                model.fit(X_res, y_res)
+                if to_save_model_grid_params:
+                    pd.DataFrame(model.cv_results_).to_csv(
+                        os.path.join(output_dir, "parmar_grid_fold" +str(fold) +"_fromrun"+ name_file[:-4] + ".csv")
+                        )
+                
+                
             forest = hasattr(model, "estimators_") and hasattr(
                 model.estimators_[0], "get_depth"
             )
@@ -291,10 +342,16 @@ def run_eval(
                     X_test[:, bool_mask] = scaler.transform(
                         X_test[:, bool_mask]
                     )  ## continuous features only
-            if kind =='binary':
-                y_pred_probas = model.predict_proba(X_test)[:, 1]
+            if to_use_pipeline: # Case pipeline
+                if kind =='binary':
+                    y_pred_probas = grid.predict_proba(X_test)[:, 1]
+                else:
+                    y_pred_probas = grid.predict_proba(X_test)
             else:
-                y_pred_probas = model.predict_proba(X_test)
+                if kind =='binary':
+                    y_pred_probas = model.predict_proba(X_test)[:, 1]
+                else:
+                    y_pred_probas = model.predict_proba(X_test)
 
             ######## Results are saved ###################
             list_all_preds[i+1].extend(y_pred_probas)
