@@ -139,7 +139,7 @@ class MGS(BaseOverSampler):
     """
 
     def __init__(
-        self, K, n_points=None, llambda=1.0, sampling_strategy="auto", random_state=None
+        self, K, llambda=1.0, sampling_strategy="auto", random_state=None
     ):
         """
         llambda is a float.
@@ -147,10 +147,6 @@ class MGS(BaseOverSampler):
         super().__init__(sampling_strategy=sampling_strategy)
         self.K = K
         self.llambda = llambda
-        if n_points is None:
-            self.n_points = K
-        else:
-            self.n_points = n_points
         self.random_state = random_state
 
     def _fit_resample(self, X, y=None, n_final_sample=None):
