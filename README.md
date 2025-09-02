@@ -1,8 +1,9 @@
-## Do we need rebalancing strategies? A theoretical and empirical study around SMOTE and its variants.
+## If you want to use our proposed method MGS, please use the following updated repository : https://github.com/artefactory/mgs-grf
 
 Repository for [Do we need rebalancing strategies? A theoretical and empirical study around SMOTE and its variants](https://arxiv.org/pdf/2402.03819.pdf) paper.
 
-In praticular, you will find code to reproduce the paper experiments. **If you want to use our proposed mthods, please use the following updated repository** : https://github.com/artefactory/mgs-grf
+In praticular, you will find code to reproduce the paper experiments. 
+
 ## ⭐ Table of Contents
   - [Getting Started](#getting-started)
   - [Data sets](#data-sets)
